@@ -46,7 +46,7 @@
          STAGE 1: LOCK SCREEN PANEL (GESTURE SWIPE UP TARGET)
          ========================================================================== -->
     <div id="lock-screen"
-      class="absolute inset-0 flex flex-col justify-between p-12 transition-transform duration-400 cubic-bezier(0.16, 1, 0.3, 1) z-50 cursor-pointer">
+      class="absolute inset-0 flex flex-col justify-between p-6 sm:p-12 transition-transform duration-400 cubic-bezier(0.16, 1, 0.3, 1) z-50 cursor-pointer">
       <!-- High-Contrast System Time & Date Dashboard -->
       <div class="flex flex-col items-center justify-center mt-20 text-center select-none pointer-events-none">
         <div id="lock-time"
@@ -115,12 +115,12 @@
          STAGE 2: LOGIN DASHBOARD (GLASSMORPHIC SECURITY MODULE)
          ========================================================================== -->
     <div id="login-screen"
-      class="absolute inset-0 flex flex-col justify-between p-12 opacity-0 invisible pointer-events-none transition-all duration-350 z-40">
+      class="absolute inset-0 flex flex-col justify-between p-6 sm:p-12 opacity-0 invisible pointer-events-none transition-all duration-350 z-40">
 
       <!-- Center Aligned Login Authorization Form Card -->
       <div class="flex flex-col items-center justify-center my-auto w-full">
         <div id="login-card"
-          class="glass-card w-full max-w-sm rounded-3xl p-8 flex flex-col items-center justify-center text-center opacity-0 scale-95 transition-all duration-350 delay-100">
+          class="glass-card w-full max-w-sm rounded-3xl p-6 sm:p-8 flex flex-col items-center justify-center text-center opacity-0 scale-95 transition-all duration-350 delay-100">
 
           <!-- Glowing Multi-Gradient Profile Avatar -->
           <div class="relative group mb-6">
@@ -152,6 +152,11 @@
               <i class="ph-bold ph-lock-simple absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
               <input id="password-input" type="password" placeholder="••••••••"
                 class="w-full bg-slate-950/40 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-950/60 transition-all font-medium text-sm text-center">
+            </div>
+            <!-- Dynamic Authentication Error Message -->
+            <div id="login-error-msg" class="text-[11px] text-red-400 font-semibold mt-2.5 hidden text-left px-2 flex items-center gap-1.5 animate-pulse">
+              <i class="ph-bold ph-warning-circle text-xs shrink-0"></i>
+              <span class="error-text"></span>
             </div>
           </div>
 
@@ -245,7 +250,7 @@
          STAGE 4: DYNAMIC WELCOME BANNER (STAGGERED SWEED LETTERS)
          ========================================================================== -->
     <div id="welcome-screen"
-      class="absolute inset-0 flex flex-col justify-between p-12 opacity-0 invisible pointer-events-none transition-all duration-400 z-20">
+      class="absolute inset-0 flex flex-col justify-between p-6 sm:p-12 opacity-0 invisible pointer-events-none transition-all duration-400 z-20">
       
       <!-- Staggered Glyphs Array Container -->
       <div class="flex flex-col items-center justify-center my-auto w-full select-none pointer-events-none text-center">
@@ -277,7 +282,7 @@
       <div id="workspace" class="relative flex-1 w-full z-20">
 
         <!-- Shortcuts Grid Overlay -->
-        <div id="desktop-icons" class="absolute top-2 left-2 flex flex-col space-y-4 w-24">
+        <div id="desktop-icons" class="absolute top-4 left-4 flex flex-col gap-3 w-20 z-20">
           
           <!-- Shortcut: File Explorer -->
           <div id="icon-explorer"
@@ -325,51 +330,54 @@
       <!-- ==========================================================================
            UNIFIED GLASSMORPHIC TASKBAR (SYSTEM ANCHOR INTERFACE)
            ========================================================================== -->
-      <div class="w-full flex justify-center pb-2 pt-4 select-none z-30 pointer-events-none">
+      <div class="w-full flex justify-center pb-2 pt-4 px-2 sm:px-4 select-none z-30 pointer-events-none">
         <div
-          class="w-full max-w-7xl glass-card-light h-16 px-6 rounded-3xl flex items-center justify-between shadow-lg pointer-events-auto border border-white/10 relative">
+          class="w-full max-w-7xl glass-card-light h-14 sm:h-16 px-3 sm:px-6 rounded-2xl sm:rounded-3xl flex items-center justify-between shadow-lg pointer-events-auto border border-white/10 relative">
 
-          <!-- Left Dashboard Cluster (Branding & Active Session Identity) -->
-          <div class="flex items-center space-x-4">
+          <!-- Left Dashboard Cluster (Branding & Active Session Identity) - Hidden on Mobile -->
+          <div class="hidden sm:flex items-center space-x-2 sm:space-x-4">
             <button id="menu-logo-btn"
               class="flex items-center space-x-2 text-emerald-400 hover:text-emerald-300 font-extrabold tracking-wider transition-all text-xs uppercase cursor-pointer">
               <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span class="font-display font-extrabold">VerdantOS</span>
+              <span class="font-display font-extrabold hidden sm:inline">VerdantOS</span>
             </button>
-            <span class="h-3 w-px bg-white/10"></span>
-            <span id="menu-username-display" class="font-semibold text-slate-200 text-xs">Guest</span>
+            <span class="h-3 w-px bg-white/10 hidden md:inline"></span>
+            <div id="menu-user-cluster" class="flex items-center space-x-1.5 hidden md:flex cursor-pointer hover:bg-white/5 border border-transparent hover:border-white/10 px-2.5 py-1 rounded-xl transition-all active:scale-95">
+              <span id="menu-avatar-display" class="text-sm select-none">🐼</span>
+              <span id="menu-username-display" class="font-semibold text-slate-200 text-xs">Guest</span>
+            </div>
           </div>
 
-          <!-- Middle Navigation dock Carrying Minimized Window Targets -->
-          <div id="taskbar-apps" class="flex items-center space-x-3 pointer-events-auto">
+          <!-- Middle Navigation dock Carrying Window Targets (Aligned Left on Mobile) -->
+          <div id="taskbar-apps" class="flex items-center space-x-2 sm:space-x-3 pointer-events-auto">
             <!-- Populated on runtime events -->
           </div>
 
-          <!-- Right Status Bar Dashboard -->
-          <div class="flex items-center space-x-4">
+          <!-- Right Status Bar Dashboard (Aligned Right naturally via justify-between) -->
+          <div class="flex items-center space-x-2 sm:space-x-4">
             <!-- Hardware Interfaces Tray -->
-            <div id="desktop-tray-features" class="flex items-center space-x-2 text-slate-300">
+            <div id="desktop-tray-features" class="flex items-center space-x-2 text-slate-300 hidden md:flex">
               <i id="tray-wifi" class="ph-bold ph-wifi-slash text-base text-slate-500 transition-all duration-300"></i>
               <i id="tray-bluetooth"
                 class="ph-bold ph-bluetooth-slash text-base text-slate-500 transition-all duration-300"></i>
             </div>
 
-            <span class="h-3 w-px bg-white/10"></span>
+            <span class="h-3 w-px bg-white/10 hidden md:inline"></span>
 
-            <!-- Real-Time Atmospheric Feed Widget -->
+            <!-- Real-Time Atmospheric Feed Widget (Visible on Mobile) -->
             <div id="desktop-tray-weather"
-              class="text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 cursor-pointer text-xs">
+              class="text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 cursor-pointer text-xs flex">
               <i id="top-bar-weather-icon" class="ph-bold ph-cloud-sun text-base text-emerald-400"></i>
-              <span id="top-bar-temp" class="font-semibold text-xs">--°C</span>
+              <span id="top-bar-temp" class="font-semibold text-xs inline">--°C</span>
             </div>
 
             <span class="h-3 w-px bg-white/10"></span>
 
-            <!-- Quick Settings Panel Trigger Button -->
+            <!-- Quick Settings Panel Trigger Button (Symmetric w-8 h-8 square on Mobile) -->
             <button id="quick-settings-toggle"
-              class="h-8 px-3.5 bg-white/5 border border-white/10 hover:bg-emerald-600/20 hover:border-emerald-500/30 rounded-xl flex items-center justify-center space-x-2 text-xs text-slate-200 hover:text-emerald-300 transition-all cursor-pointer select-none">
+              class="h-8 w-8 sm:w-auto sm:px-3.5 bg-white/5 border border-white/10 hover:bg-emerald-600/20 hover:border-emerald-500/30 rounded-xl flex items-center justify-center sm:space-x-2 text-xs text-slate-200 hover:text-emerald-300 transition-all cursor-pointer select-none">
               <i class="ph-bold ph-sliders text-sm text-emerald-400"></i>
-              <span class="font-semibold text-xs">Quick Menu</span>
+              <span class="font-semibold text-xs hidden sm:inline">Quick Menu</span>
             </button>
 
             <span class="h-3 w-px bg-white/10"></span>
@@ -383,7 +391,7 @@
                TRAY FLYOUT PANEL 1: METEOROLOGICAL TELEMETRY
                ========================================================================== -->
           <div id="weather-details-panel"
-            class="glass-card absolute right-0 bottom-20 w-80 rounded-3xl p-6 opacity-0 pointer-events-none scale-95 origin-bottom-right transition-all duration-300 z-50 flex flex-col space-y-4">
+            class="glass-card absolute left-4 right-4 sm:left-auto sm:right-0 bottom-20 w-auto sm:w-80 rounded-3xl p-6 opacity-0 pointer-events-none scale-95 origin-bottom sm:origin-bottom-right transition-all duration-300 z-50 flex flex-col space-y-4">
             
             <div class="flex justify-between items-center border-b border-white/5 pb-3">
               <h3 class="text-sm font-bold text-white uppercase tracking-wider font-display flex items-center gap-1.5">
@@ -438,7 +446,7 @@
                TRAY FLYOUT PANEL 2: HARDWARE STATE CONTROLLER & HARDWARE METRICS
                ========================================================================== -->
           <div id="quick-settings-panel"
-            class="glass-card absolute right-0 bottom-20 w-80 rounded-3xl p-6 opacity-0 pointer-events-none scale-95 origin-bottom-right transition-all duration-300 z-50 flex flex-col space-y-5">
+            class="glass-card absolute left-4 right-4 sm:left-auto sm:right-0 bottom-20 w-auto sm:w-80 rounded-3xl p-6 opacity-0 pointer-events-none scale-95 origin-bottom sm:origin-bottom-right transition-all duration-300 z-50 flex flex-col space-y-5">
             
             <div class="flex justify-between items-center border-b border-white/5 pb-3">
               <h3 class="text-sm font-bold text-white uppercase tracking-wider font-display flex items-center gap-1.5">

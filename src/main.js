@@ -47,47 +47,92 @@ let sysState = {
 };
 
 /**
- * Restores system state and directories from persistent browser storage (LocalStorage).
+ * Helper to save isolated user preferences state to LocalStorage.
+ */
+function saveUserState(username) {
+  if (!username) username = sysState.username;
+  const userStateObj = {
+    wifi: sysState.wifi,
+    bluetooth: sysState.bluetooth,
+    volume: sysState.volume,
+    blur: sysState.blur,
+    wallpaperMode: sysState.wallpaperMode,
+    windStrength: sysState.windStrength,
+    currentDir: sysState.currentDir,
+    pinnedApps: sysState.pinnedApps,
+    avatar: sysState.avatar || '🐼'
+  };
+  localStorage.setItem(`verdant_user_${username}_state`, JSON.stringify(userStateObj));
+}
+
+/**
+ * Restores system state and directories from persistent isolated user storage in LocalStorage.
  * Falls back to default initial values if no data is cached.
  */
-function loadSystemSettings() {
-  const savedUser = localStorage.getItem('verdant_username');
-  if (savedUser) sysState.username = savedUser;
-
-  const savedWifi = localStorage.getItem('verdant_wifi');
-  if (savedWifi) sysState.wifi = savedWifi === 'true';
-
-  const savedBluetooth = localStorage.getItem('verdant_bluetooth');
-  if (savedBluetooth) sysState.bluetooth = savedBluetooth === 'true';
-
-  const savedVolume = localStorage.getItem('verdant_volume');
-  if (savedVolume) sysState.volume = parseInt(savedVolume, 10);
-
-  const savedBlur = localStorage.getItem('verdant_blur');
-  if (savedBlur) sysState.blur = parseInt(savedBlur, 10);
-  
-  const savedMode = localStorage.getItem('verdant_wallpaperMode');
-  if (savedMode) sysState.wallpaperMode = savedMode;
-  
-  const savedWind = localStorage.getItem('verdant_windStrength');
-  if (savedWind) sysState.windStrength = savedWind;
-
-  const savedPinned = localStorage.getItem('verdant_pinnedApps');
-  if (savedPinned) {
-    try {
-      sysState.pinnedApps = JSON.parse(savedPinned);
-    } catch(e) {
-      sysState.pinnedApps = ['explorer', 'terminal', 'browser', 'settings'];
-    }
+function loadSystemSettings(username) {
+  if (!username) {
+    username = localStorage.getItem('verdant_last_username') || 'Verdant Guest';
   }
 
-  const savedFS = localStorage.getItem('verdant_fs');
-  if (savedFS) {
+  // Ensure user list contains this username
+  let usersList = [];
+  try {
+    usersList = JSON.parse(localStorage.getItem('verdant_users_list')) || [];
+  } catch (e) {
+    usersList = [];
+  }
+  if (!usersList.includes(username)) {
+    usersList.push(username);
+    localStorage.setItem('verdant_users_list', JSON.stringify(usersList));
+    localStorage.setItem(`verdant_user_${username}_created`, Date.now().toString());
+  }
+
+  sysState.username = username;
+
+  // Load isolated settings from LocalStorage
+  const savedStateStr = localStorage.getItem(`verdant_user_${username}_state`);
+  if (savedStateStr) {
     try {
-      sysState.filesystem = JSON.parse(savedFS);
+      const savedState = JSON.parse(savedStateStr);
+      if (savedState.wifi !== undefined) sysState.wifi = savedState.wifi;
+      if (savedState.bluetooth !== undefined) sysState.bluetooth = savedState.bluetooth;
+      if (savedState.volume !== undefined) sysState.volume = savedState.volume;
+      if (savedState.blur !== undefined) sysState.blur = savedState.blur;
+      if (savedState.wallpaperMode !== undefined) sysState.wallpaperMode = savedState.wallpaperMode;
+      if (savedState.windStrength !== undefined) sysState.windStrength = savedState.windStrength;
+      if (savedState.currentDir !== undefined) sysState.currentDir = savedState.currentDir;
+      if (savedState.pinnedApps !== undefined) sysState.pinnedApps = savedState.pinnedApps;
+      sysState.avatar = savedState.avatar || '🐼';
+    } catch (e) {
+      console.warn("Failed parsing user preferences, resetting defaults.", e);
+    }
+  } else {
+    // Set defaults for a new profile
+    sysState.wifi = false;
+    sysState.bluetooth = false;
+    sysState.volume = 80;
+    sysState.blur = 0;
+    sysState.wallpaperMode = 'auto';
+    sysState.windStrength = 'breeze';
+    sysState.currentDir = '/documents';
+    sysState.pinnedApps = ['explorer', 'terminal', 'browser', 'settings'];
+    sysState.avatar = '🐼';
+    
+    saveUserState(username);
+  }
+
+  // Load isolated virtual filesystem
+  const savedFSStr = localStorage.getItem(`verdant_user_${username}_fs`);
+  if (savedFSStr) {
+    try {
+      sysState.filesystem = JSON.parse(savedFSStr);
     } catch (e) {
       sysState.filesystem = JSON.parse(JSON.stringify(DEFAULT_FILESYSTEM));
+      saveFilesystem();
     }
+  } else {
+    sysState.filesystem = JSON.parse(JSON.stringify(DEFAULT_FILESYSTEM));
+    saveFilesystem();
   }
 }
 
@@ -98,14 +143,19 @@ function loadSystemSettings() {
  */
 function saveState(key, val) {
   sysState[key] = val;
-  localStorage.setItem(`verdant_${key}`, val.toString());
+  
+  if (key === 'username') {
+    localStorage.setItem('verdant_last_username', val.toString());
+  } else {
+    saveUserState(sysState.username);
+  }
 }
 
 /**
- * Persists the virtual filesystem tree to persistent LocalStorage.
+ * Persists the virtual filesystem tree to persistent LocalStorage under the active user scope.
  */
 function saveFilesystem() {
-  localStorage.setItem('verdant_fs', JSON.stringify(sysState.filesystem));
+  localStorage.setItem(`verdant_user_${sysState.username}_fs`, JSON.stringify(sysState.filesystem));
 }
 
 /* ==========================================================================
@@ -269,6 +319,8 @@ const UI = {
   desktop: document.getElementById('desktop'),
   desktopClock: document.getElementById('desktop-clock'),
   menuUsernameDisplay: document.getElementById('menu-username-display'),
+  menuAvatarDisplay: document.getElementById('menu-avatar-display'),
+  menuUserCluster: document.getElementById('menu-user-cluster'),
   quickSettingsToggle: document.getElementById('quick-settings-toggle'),
   quickSettingsPanel: document.getElementById('quick-settings-panel'),
   quickSettingsClose: document.getElementById('quick-settings-close'),
@@ -402,13 +454,92 @@ const bootMessages = [
   { p: 100, m: 'Kernel Boot Successful.' }
 ];
 
+function shakeLoginCard() {
+  UI.loginCard.classList.add('animate-shake');
+  playSystemSound('lock', sysState.volume);
+  setTimeout(() => {
+    UI.loginCard.classList.remove('animate-shake');
+  }, 400);
+}
+
+function showLoginError(msg) {
+  const errorEl = document.getElementById('login-error-msg');
+  if (errorEl) {
+    const textEl = errorEl.querySelector('.error-text');
+    if (textEl) textEl.textContent = msg;
+    errorEl.classList.remove('hidden');
+  }
+}
+
+function hideLoginError() {
+  const errorEl = document.getElementById('login-error-msg');
+  if (errorEl) {
+    errorEl.classList.add('hidden');
+  }
+}
+
+/**
+ * Authorizes the user password and credentials before loading virtual OS kernel threads.
+ */
+function authenticateAndBoot() {
+  const username = UI.usernameInput.value.trim() || 'Verdant Guest';
+  const password = UI.passwordInput.value;
+  
+  const storedPassword = localStorage.getItem(`verdant_user_${username}_password`);
+  
+  if (storedPassword !== null) {
+    // This profile is password-protected
+    if (!password) {
+      showLoginError("Enter password for this profile.");
+      shakeLoginCard();
+      UI.passwordInput.focus();
+      return;
+    }
+    
+    if (password !== storedPassword) {
+      showLoginError("Incorrect password. Please try again.");
+      shakeLoginCard();
+      UI.passwordInput.value = '';
+      UI.passwordInput.focus();
+      return;
+    }
+  } else {
+    // New user or optional password setup
+    if (password) {
+      localStorage.setItem(`verdant_user_${username}_password`, password);
+    }
+  }
+  
+  // Successful Auth!
+  hideLoginError();
+  
+  // Load isolated system settings & virtual filesystem
+  loadSystemSettings(username);
+  
+  // Synchronize workspace UI values to loaded state
+  UI.menuUsernameDisplay.textContent = sysState.username;
+  if (UI.menuAvatarDisplay) UI.menuAvatarDisplay.textContent = sysState.avatar || '🐼';
+  UI.volumeVal.textContent = `${sysState.volume}%`;
+  UI.volumeSlider.value = sysState.volume;
+  applyBlurLevel(sysState.blur);
+  syncFeatureToggles();
+  renderTaskbarApps();
+  updateTopBarWeatherDisplay();
+  updateWallpaperGIF();
+  
+  // Reset fields for lock security
+  UI.passwordInput.value = '';
+  
+  // Proceed to boot!
+  performBootLoading();
+}
+
 /**
  * Starts the snappy simulated loader sequencing during authorization.
  */
 function performBootLoading() {
-  const typedUser = UI.usernameInput.value.trim() || 'Verdant Guest';
-  saveState('username', typedUser);
-  UI.menuUsernameDisplay.textContent = typedUser;
+  // Save login session registry
+  localStorage.setItem('verdant_last_username', sysState.username);
   
   UI.loginScreen.classList.add('opacity-0', 'pointer-events-none', 'invisible');
   UI.loginScreen.classList.remove('opacity-100');
@@ -437,10 +568,34 @@ function performBootLoading() {
 }
 
 /**
+ * Dynamically builds spelling-reveal animation spans for custom user greeting banners.
+ */
+function generateWelcomeLetters() {
+  const name = sysState.username;
+  const greeting = `Welcome, ${name}`;
+  UI.welcomeName.innerHTML = '';
+  
+  for (let i = 0; i < greeting.length; i++) {
+    const char = greeting[i];
+    const span = document.createElement('span');
+    span.className = 'welcome-letter';
+    if (char === ' ') {
+      span.innerHTML = '&nbsp;';
+    } else {
+      span.textContent = char;
+    }
+    span.style.animationDelay = `${0.1 + i * 0.05}s`;
+    UI.welcomeName.appendChild(span);
+  }
+}
+
+/**
  * Triggers the welcome screen spelling reveal animation and registers the hardware audio boot chime.
  */
 function revealWelcomeScreen() {
   playSystemSound('boot', sysState.volume);
+  
+  generateWelcomeLetters();
 
   UI.loadingScreen.classList.add('opacity-0', 'pointer-events-none', 'invisible');
   UI.loadingScreen.classList.remove('opacity-100');
@@ -452,7 +607,7 @@ function revealWelcomeScreen() {
     UI.welcomeScreen.classList.add('opacity-0', 'pointer-events-none', 'invisible');
     UI.welcomeScreen.classList.remove('opacity-100');
     revealDesktop();
-  }, 1200);
+  }, 1600);
 }
 
 /**
@@ -705,7 +860,7 @@ window.addEventListener('keydown', (e) => {
     if (sysState.isLocked) {
       unlockLockScreen();
     } else if (document.activeElement === UI.usernameInput || document.activeElement === UI.passwordInput) {
-      performBootLoading();
+      authenticateAndBoot();
     }
   } else if (e.key === 'Escape') {
     if (!sysState.isLocked && UI.desktop.classList.contains('opacity-0')) {
@@ -716,7 +871,69 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-UI.signinBtn.addEventListener('click', performBootLoading);
+UI.signinBtn.addEventListener('click', authenticateAndBoot);
+
+// Live user avatar and credential status detection in the Lock Screen Login Card
+UI.usernameInput.addEventListener('input', () => {
+  const username = UI.usernameInput.value.trim();
+  const storedPassword = localStorage.getItem(`verdant_user_${username}_password`);
+  const avatarEl = UI.loginScreen.querySelector('.ph-user-circle');
+  const avatarContainer = UI.loginScreen.querySelector('.relative.w-24.h-24');
+  
+  // Find password label to mark (Required) or (optional)
+  const labels = UI.loginScreen.querySelectorAll('label');
+  let passwordLabel = null;
+  labels.forEach(l => {
+    if (l.textContent.includes('Password')) {
+      passwordLabel = l;
+    }
+  });
+
+  if (storedPassword !== null) {
+    if (passwordLabel) {
+      passwordLabel.innerHTML = `Password <span class="text-[9px] text-amber-400 font-bold uppercase tracking-wider">(Required)</span>`;
+    }
+    
+    let avatar = '🐼';
+    const userStateStr = localStorage.getItem(`verdant_user_${username}_state`);
+    if (userStateStr) {
+      try {
+        const userState = JSON.parse(userStateStr);
+        avatar = userState.avatar || '🐼';
+      } catch(e) {}
+    }
+    
+    if (avatarEl) {
+      avatarEl.classList.add('hidden');
+    }
+    
+    let emojiEl = avatarContainer.querySelector('.login-avatar-emoji');
+    if (!emojiEl) {
+      emojiEl = document.createElement('div');
+      emojiEl.className = 'login-avatar-emoji text-5xl select-none animate-fade-in';
+      avatarContainer.appendChild(emojiEl);
+    }
+    emojiEl.textContent = avatar;
+    emojiEl.classList.remove('hidden');
+    
+    avatarContainer.className = 'relative w-24 h-24 rounded-full border border-indigo-400/40 bg-slate-900/60 overflow-hidden flex items-center justify-center backdrop-blur-md shadow-[0_0_18px_rgba(99,102,241,0.55)] transition-all duration-300 scale-102';
+  } else {
+    if (passwordLabel) {
+      passwordLabel.innerHTML = `Password <span class="text-[9px] text-slate-500 font-normal lowercase">(optional - sets new password)</span>`;
+    }
+    
+    if (avatarEl) {
+      avatarEl.classList.remove('hidden');
+    }
+    
+    const emojiEl = avatarContainer.querySelector('.login-avatar-emoji');
+    if (emojiEl) {
+      emojiEl.classList.add('hidden');
+    }
+    
+    avatarContainer.className = 'relative w-24 h-24 rounded-full border border-white/20 bg-slate-900/60 overflow-hidden flex items-center justify-center backdrop-blur-md shadow-inner transition-all duration-300 scale-100';
+  }
+});
 
 UI.lockOsBtn.addEventListener('click', () => {
   UI.quickSettingsPanel.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
@@ -763,12 +980,13 @@ class OSWindow {
     this.icon = icon;
     this.contentGenerator = contentGenerator;
     
+    const isMobile = window.innerWidth <= 768;
     this.width = Math.min(window.innerWidth - 60, 600);
     this.height = Math.min(window.innerHeight - 150, 420);
-    this.left = Math.max(30, (window.innerWidth - this.width) / 2 + (activeWindows.length * 20));
-    this.top = Math.max(80, (window.innerHeight - this.height) / 2 - 40 + (activeWindows.length * 15));
+    this.left = isMobile ? 0 : Math.max(30, (window.innerWidth - this.width) / 2 + (activeWindows.length * 20));
+    this.top = isMobile ? 0 : Math.max(80, (window.innerHeight - this.height) / 2 - 40 + (activeWindows.length * 15));
     
-    this.isMaximized = false;
+    this.isMaximized = isMobile;
     this.isMinimized = false;
     this.dom = null;
     
@@ -777,7 +995,7 @@ class OSWindow {
     this.focus();
     
     activeWindows.push(this);
-    this.updateDockIndicator();
+    renderTaskbarApps();
   }
   
   /**
@@ -786,11 +1004,22 @@ class OSWindow {
   createDOM() {
     const winDiv = document.createElement('div');
     winDiv.id = `window-${this.id}`;
-    winDiv.className = 'os-window glass-card active-window';
-    winDiv.style.width = `${this.width}px`;
-    winDiv.style.height = `${this.height}px`;
-    winDiv.style.left = `${this.left}px`;
-    winDiv.style.top = `${this.top}px`;
+    
+    const isMobile = window.innerWidth <= 768;
+    if (this.isMaximized) {
+      winDiv.className = 'os-window glass-card active-window rounded-xl';
+      winDiv.style.width = '100%';
+      winDiv.style.height = '100%';
+      winDiv.style.left = '0';
+      winDiv.style.top = '0';
+      winDiv.style.borderRadius = '16px';
+    } else {
+      winDiv.className = 'os-window glass-card active-window';
+      winDiv.style.width = `${this.width}px`;
+      winDiv.style.height = `${this.height}px`;
+      winDiv.style.left = `${this.left}px`;
+      winDiv.style.top = `${this.top}px`;
+    }
     winDiv.style.zIndex = ++windowZIndex;
     
     winDiv.innerHTML = `
@@ -802,7 +1031,7 @@ class OSWindow {
           <button class="win-btn-min w-3 h-3 rounded-full bg-amber-500/80 hover:bg-amber-500 hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-[6px] text-amber-950 font-bold group">
             <span class="opacity-0 group-hover:opacity-100">−</span>
           </button>
-          <button class="win-btn-max w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-[5px] text-green-950 font-bold group">
+          <button class="win-btn-max w-3 h-3 rounded-full bg-green-500/80 hover:bg-green-500 hover:scale-105 active:scale-95 transition-all cursor-pointer flex items-center justify-center text-[5px] text-green-950 font-bold group ${isMobile ? 'hidden' : ''}">
             <span class="opacity-0 group-hover:opacity-100">⤢</span>
           </button>
         </div>
@@ -819,7 +1048,7 @@ class OSWindow {
         </div>
       </div>
       
-      <div class="window-resizer absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-end justify-end p-0.5 select-none z-30">
+      <div class="window-resizer absolute bottom-0 right-0 w-4 h-4 cursor-se-resize flex items-end justify-end p-0.5 select-none z-30 ${this.isMaximized ? 'hidden' : ''}">
         <i class="ph-bold ph-dots-nine text-[8px] text-slate-500 pointer-events-none"></i>
       </div>
     `;
@@ -937,7 +1166,7 @@ class OSWindow {
     setTimeout(() => {
       if (this.dom) this.dom.remove();
       activeWindows = activeWindows.filter(win => win.id !== this.id);
-      this.updateDockIndicator();
+      renderTaskbarApps();
     }, 200);
   }
   
@@ -971,14 +1200,18 @@ class OSWindow {
    * Toggles full workspace expansion layouts.
    */
   toggleMaximize() {
+    const isMobile = window.innerWidth <= 768;
     this.isMaximized = !this.isMaximized;
+    const resizer = this.dom.querySelector('.window-resizer');
+    
     if (this.isMaximized) {
       this.dom.style.width = '100%';
-      this.dom.style.height = 'calc(100% - 44px)';
+      this.dom.style.height = '100%';
       this.dom.style.left = '0';
-      this.dom.style.top = '44px';
+      this.dom.style.top = '0';
       this.dom.classList.remove('rounded-2xl');
-      this.dom.style.borderRadius = '0px';
+      this.dom.style.borderRadius = isMobile ? '16px' : '0px';
+      if (resizer) resizer.classList.add('hidden');
     } else {
       this.dom.style.width = `${this.width}px`;
       this.dom.style.height = `${this.height}px`;
@@ -986,7 +1219,11 @@ class OSWindow {
       this.dom.style.top = `${this.top}px`;
       this.dom.classList.add('rounded-2xl');
       this.dom.style.borderRadius = '20px';
+      if (resizer) resizer.classList.remove('hidden');
     }
+    
+    const resizeEvent = new CustomEvent('windowResize', { detail: { w: this.isMaximized ? this.dom.clientWidth : this.width, h: this.isMaximized ? this.dom.clientHeight : this.height } });
+    this.dom.dispatchEvent(resizeEvent);
   }
   
   /**
@@ -1477,123 +1714,552 @@ function browserAppContent(winInstance) {
 /**
  * Control Panel Settings application template builder.
  * @param {OSWindow} winInstance - Target window container.
+ * @returns {string} Compiled H/**
+ * Counts the active file nodes created in the isolated virtual filesystem.
+ */
+function getFilesCount() {
+  let count = 0;
+  if (sysState.filesystem) {
+    Object.values(sysState.filesystem).forEach(node => {
+      if (node && node.type === 'file') count++;
+    });
+  }
+  return count;
+}
+
+/**
+ * Control Panel Settings application template builder.
+ * @param {OSWindow} winInstance - Target window container.
  * @returns {string} Compiled HTML layout string.
  */
 function settingsAppContent(winInstance) {
   setTimeout(() => {
-    const blurIn = winInstance.dom.querySelector('.settings-blur-slider');
+    const tabs = winInstance.dom.querySelectorAll('.settings-tab-btn');
+    const tabContents = winInstance.dom.querySelectorAll('.settings-tab-content');
+    
+    // Add Click Listeners to Tabs
+    tabs.forEach(btn => {
+      btn.addEventListener('click', () => {
+        tabs.forEach(b => b.classList.remove('active-tab'));
+        btn.classList.add('active-tab');
+        
+        const targetTab = btn.getAttribute('data-tab');
+        tabContents.forEach(c => {
+          if (c.id === `tab-${targetTab}`) {
+            c.classList.remove('hidden');
+          } else {
+            c.classList.add('hidden');
+          }
+        });
+      });
+    });
+    
+    // TAB 1: PROFILE HUB INTERACTIVE CODE
+    const avatarGrid = winInstance.dom.querySelector('.avatar-selector-grid');
+    const changeAvatarBtn = winInstance.dom.querySelector('.btn-toggle-avatars');
+    const currentAvatarDisplay = winInstance.dom.querySelector('.settings-profile-avatar');
+    
+    if (changeAvatarBtn && avatarGrid) {
+      changeAvatarBtn.addEventListener('click', () => {
+        avatarGrid.classList.toggle('hidden');
+      });
+    }
+    
+    // Avatar selection click
+    const emojis = winInstance.dom.querySelectorAll('.avatar-emoji-option');
+    emojis.forEach(el => {
+      el.addEventListener('click', () => {
+        const emoji = el.getAttribute('data-emoji');
+        sysState.avatar = emoji;
+        saveState('avatar', emoji);
+        
+        // Update live displays
+        if (currentAvatarDisplay) currentAvatarDisplay.textContent = emoji;
+        if (UI.menuAvatarDisplay) UI.menuAvatarDisplay.textContent = emoji;
+        
+        // Glow effect
+        const avatarContainer = winInstance.dom.querySelector('.settings-avatar-container');
+        if (avatarContainer) {
+          avatarContainer.classList.add('scale-105', 'shadow-[0_0_20px_rgba(99,102,241,0.5)]');
+          setTimeout(() => {
+            avatarContainer.classList.remove('scale-105', 'shadow-[0_0_20px_rgba(99,102,241,0.5)]');
+          }, 300);
+        }
+        
+        avatarGrid.classList.add('hidden');
+      });
+    });
+    
+    // Save account personalization (Username & Password changes)
     const userIn = winInstance.dom.querySelector('.settings-username-input');
-    const saveBtn = winInstance.dom.querySelector('.settings-save-btn');
-    const restoreBtn = winInstance.dom.querySelector('.settings-restore-btn');
+    const passwordIn = winInstance.dom.querySelector('.settings-pass-input');
+    const requirePassCheck = winInstance.dom.querySelector('.settings-require-pass-check');
+    const saveProfileBtn = winInstance.dom.querySelector('.btn-save-profile');
+    
+    if (saveProfileBtn) {
+      saveProfileBtn.addEventListener('click', () => {
+        const newName = userIn.value.trim();
+        if (!newName) {
+          alert('Username cannot be empty!');
+          return;
+        }
+        
+        // If the username changed, migrate the isolated state key!
+        if (newName !== sysState.username) {
+          let usersList = [];
+          try {
+            usersList = JSON.parse(localStorage.getItem('verdant_users_list')) || [];
+          } catch(e) {}
+          
+          if (usersList.includes(newName)) {
+            alert('A profile with that username already exists!');
+            return;
+          }
+          
+          // Migrate keys
+          const oldName = sysState.username;
+          
+          // Save under new name
+          sysState.username = newName;
+          saveUserState(newName);
+          saveFilesystem();
+          
+          // Copy password
+          const pass = localStorage.getItem(`verdant_user_${oldName}_password`);
+          if (pass) {
+            localStorage.setItem(`verdant_user_${newName}_password`, pass);
+          }
+          
+          // Add to users list and remove old
+          usersList = usersList.filter(u => u !== oldName);
+          usersList.push(newName);
+          localStorage.setItem('verdant_users_list', JSON.stringify(usersList));
+          
+          // Copy metadata
+          const created = localStorage.getItem(`verdant_user_${oldName}_created`);
+          if (created) localStorage.setItem(`verdant_user_${newName}_created`, created);
+          
+          // Clean old keys
+          localStorage.removeItem(`verdant_user_${oldName}_state`);
+          localStorage.removeItem(`verdant_user_${oldName}_fs`);
+          localStorage.removeItem(`verdant_user_${oldName}_password`);
+          localStorage.removeItem(`verdant_user_${oldName}_created`);
+          
+          // Set active session
+          localStorage.setItem('verdant_last_username', newName);
+          
+          UI.menuUsernameDisplay.textContent = newName;
+        }
+        
+        // Update Password status
+        const passVal = passwordIn.value;
+        const wantsPass = requirePassCheck.checked;
+        
+        if (wantsPass) {
+          if (!passVal) {
+            // Check if they already had a password
+            const oldPass = localStorage.getItem(`verdant_user_${sysState.username}_password`);
+            if (!oldPass) {
+              alert('Please enter a password to enable password protection.');
+              requirePassCheck.checked = false;
+              return;
+            }
+          } else {
+            localStorage.setItem(`verdant_user_${sysState.username}_password`, passVal);
+          }
+        } else {
+          // Disable password
+          localStorage.removeItem(`verdant_user_${sysState.username}_password`);
+          passwordIn.value = '';
+        }
+        
+        // Save current preferences
+        saveUserState(sysState.username);
+        
+        // Update live elements
+        UI.menuUsernameDisplay.textContent = sysState.username;
+        const securityStatusText = winInstance.dom.querySelector('.profile-security-status-text');
+        const securityStatusBadge = winInstance.dom.querySelector('.profile-security-status-badge');
+        
+        const hasPass = localStorage.getItem(`verdant_user_${sysState.username}_password`) !== null;
+        if (securityStatusText) securityStatusText.textContent = hasPass ? 'Password Protected' : 'No Password set';
+        if (securityStatusBadge) {
+          securityStatusBadge.className = `profile-security-status-badge px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${hasPass ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'}`;
+          securityStatusBadge.textContent = hasPass ? 'Secure' : 'Open';
+        }
+        
+        alert('Profile details successfully updated!');
+        
+        // Rerender lists
+        renderProfilesListSection();
+      });
+    }
+    
+    // TAB 2: APPEARANCE INTERACTIVE CODE
+    const blurIn = winInstance.dom.querySelector('.settings-blur-slider');
     const weatherSel = winInstance.dom.querySelector('.settings-weather-select');
     const windSel = winInstance.dom.querySelector('.settings-wind-select');
+    const blurStatusText = winInstance.dom.querySelector('.blur-status-text');
     
-    blurIn.value = sysState.blur;
-    userIn.value = sysState.username;
-    weatherSel.value = sysState.wallpaperMode;
-    windSel.value = sysState.windStrength;
+    if (blurIn) {
+      blurIn.value = sysState.blur;
+      blurIn.addEventListener('input', (e) => {
+        const b = e.target.value;
+        applyBlurLevel(b);
+        saveState('blur', b);
+        if (blurStatusText) blurStatusText.textContent = `${b}px`;
+      });
+    }
     
-    blurIn.addEventListener('input', (e) => {
-      const b = e.target.value;
-      applyBlurLevel(b);
-      saveState('blur', b);
-    });
+    if (weatherSel) {
+      weatherSel.value = sysState.wallpaperMode;
+      weatherSel.addEventListener('change', (e) => {
+        const m = e.target.value;
+        saveState('wallpaperMode', m);
+        if (m === 'auto') {
+          updateWeatherFromAPI();
+        } else {
+          updateWallpaperGIF();
+        }
+      });
+    }
     
-    weatherSel.addEventListener('change', (e) => {
-      const m = e.target.value;
-      saveState('wallpaperMode', m);
-      if (m === 'auto') {
-        updateWeatherFromAPI();
-      } else {
-        updateWallpaperGIF();
-      }
-    });
+    if (windSel) {
+      windSel.value = sysState.windStrength;
+      windSel.addEventListener('change', (e) => {
+        const w = e.target.value;
+        saveState('windStrength', w);
+      });
+    }
     
-    windSel.addEventListener('change', (e) => {
-      const w = e.target.value;
-      saveState('windStrength', w);
-    });
+    // TAB 3: ADVANCED INTERACTIVE CODE
+    const restoreBtn = winInstance.dom.querySelector('.settings-restore-btn');
+    if (restoreBtn) {
+      restoreBtn.addEventListener('click', () => {
+        if (confirm('Are you sure you want to factory reset the filesystem and system cache back to defaults? All user profiles and files will be deleted!')) {
+          localStorage.clear();
+          alert('Storage initialized successfully. Rebooting kernel...');
+          shutdownOS();
+        }
+      });
+    }
     
-    saveBtn.addEventListener('click', () => {
-      const u = userIn.value.trim() || 'Verdant Guest';
-      saveState('username', u);
-      UI.menuUsernameDisplay.textContent = u;
+    // Dynamic loading of other profiles
+    function renderProfilesListSection() {
+      const container = winInstance.dom.querySelector('.other-profiles-list');
+      if (!container) return;
       
-      alert('System Settings synchronized successfully!');
-    });
-    
-    restoreBtn.addEventListener('click', () => {
-      if (confirm('Are you sure you want to hard reset the filesystem and system cache back to factory defaults?')) {
-        localStorage.clear();
-        alert('Storage cleared successfully. Rebooting kernel...');
-        shutdownOS();
+      container.innerHTML = '';
+      
+      let usersList = [];
+      try {
+        usersList = JSON.parse(localStorage.getItem('verdant_users_list')) || [];
+      } catch(e) {}
+      
+      if (usersList.length <= 1) {
+        container.innerHTML = `<div class="text-slate-500 text-xs italic py-2 text-center">No other profiles registered on this system.</div>`;
+        return;
       }
-    });
+      
+      usersList.forEach(u => {
+        if (u === sysState.username) return; // Skip active user
+        
+        let av = '🐼';
+        try {
+          const uState = JSON.parse(localStorage.getItem(`verdant_user_${u}_state`));
+          av = uState.avatar || '🐼';
+        } catch(e) {}
+        
+        const hasPass = localStorage.getItem(`verdant_user_${u}_password`) !== null;
+        
+        const card = document.createElement('div');
+        card.className = 'flex items-center justify-between p-3.5 bg-slate-950/20 border border-white/5 rounded-2xl shadow-sm';
+        card.innerHTML = `
+          <div class="flex items-center space-x-3 text-left">
+            <span class="text-2xl select-none">${av}</span>
+            <div>
+              <div class="text-xs font-bold text-slate-200 leading-tight">${u}</div>
+              <div class="text-[9px] text-slate-400 font-semibold mt-0.5 flex items-center gap-1">
+                <i class="${hasPass ? 'ph-bold ph-shield-check text-emerald-400' : 'ph-bold ph-warning text-amber-400'}"></i>
+                <span>${hasPass ? 'Password Protected' : 'No Password'}</span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button class="btn-switch-user px-3 py-1.5 bg-indigo-600/10 hover:bg-indigo-600/20 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold uppercase tracking-wider rounded-xl cursor-pointer transition-all active:scale-95 shadow-sm" data-username="${u}">
+              Switch
+            </button>
+            <button class="btn-delete-user p-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl cursor-pointer transition-all active:scale-95" data-username="${u}">
+              <i class="ph-bold ph-trash text-xs"></i>
+            </button>
+          </div>
+        `;
+        
+        // Switch profile click
+        card.querySelector('.btn-switch-user').addEventListener('click', () => {
+          if (confirm(`Are you sure you want to lock the session and switch to profile: ${u}?`)) {
+            // Lock session
+            UI.quickSettingsPanel.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+            UI.desktop.classList.add('logout-fade-out');
+            UI.desktop.classList.remove('opacity-100');
+            UI.desktop.classList.add('pointer-events-none');
+            
+            lockLoginScreen();
+            
+            // Set input field username to target
+            UI.usernameInput.value = u;
+            // Trigger username input change so the avatar changes beautifully
+            UI.usernameInput.dispatchEvent(new Event('input'));
+            
+            setTimeout(() => {
+              UI.desktop.classList.remove('logout-fade-out');
+              UI.desktop.classList.add('opacity-0', 'invisible');
+              winInstance.close();
+            }, 800);
+          }
+        });
+        
+        // Delete profile click
+        card.querySelector('.btn-delete-user').addEventListener('click', () => {
+          if (confirm(`CRITICAL WARNING: Are you sure you want to permanently delete profile "${u}" and all associated files? This cannot be undone!`)) {
+            localStorage.removeItem(`verdant_user_${u}_state`);
+            localStorage.removeItem(`verdant_user_${u}_fs`);
+            localStorage.removeItem(`verdant_user_${u}_password`);
+            localStorage.removeItem(`verdant_user_${u}_created`);
+            
+            let updatedList = usersList.filter(item => item !== u);
+            localStorage.setItem('verdant_users_list', JSON.stringify(updatedList));
+            
+            alert(`Profile "${u}" has been completely erased.`);
+            renderProfilesListSection();
+          }
+        });
+        
+        container.appendChild(card);
+      });
+    }
+    
+    // Add Account Button
+    const btnAddNewAccount = winInstance.dom.querySelector('.btn-add-new-account');
+    if (btnAddNewAccount) {
+      btnAddNewAccount.addEventListener('click', () => {
+        if (confirm('Create new profile? The active session will lock, letting you enter a new username.')) {
+          UI.quickSettingsPanel.classList.add('opacity-0', 'pointer-events-none', 'scale-95');
+          UI.desktop.classList.add('logout-fade-out');
+          UI.desktop.classList.remove('opacity-100');
+          UI.desktop.classList.add('pointer-events-none');
+          
+          lockLoginScreen();
+          
+          // Clear inputs for new registration
+          UI.usernameInput.value = '';
+          UI.passwordInput.value = '';
+          UI.usernameInput.dispatchEvent(new Event('input'));
+          
+          setTimeout(() => {
+            UI.desktop.classList.remove('logout-fade-out');
+            UI.desktop.classList.add('opacity-0', 'invisible');
+            winInstance.close();
+            UI.usernameInput.focus();
+          }, 800);
+        }
+      });
+    }
+    
+    // Initial renders
+    renderProfilesListSection();
   }, 100);
   
+  // RENDER DYNAMIC VARIABLES
+  const hasPass = localStorage.getItem(`verdant_user_${sysState.username}_password`) !== null;
+  const createdTimestamp = localStorage.getItem(`verdant_user_${sysState.username}_created`) || Date.now().toString();
+  const createdDate = new Date(parseInt(createdTimestamp, 10)).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+  
   return `
-    <div class="flex flex-col select-none text-slate-300 max-w-md mx-auto space-y-6">
+    <div class="flex flex-col sm:flex-row h-full w-full select-none text-slate-300">
       
-      <div class="glass-card-light rounded-2xl p-5 border border-white/5 space-y-4">
-        <div class="flex items-center space-x-3 border-b border-white/5 pb-3">
-          <i class="ph-bold ph-user-circle-gear text-indigo-400 text-xl"></i>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-slate-200">Account Personalization</h3>
-        </div>
-        <div class="space-y-1">
-          <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Username Display</label>
-          <input type="text" class="settings-username-input w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
-        </div>
-        <button class="settings-save-btn w-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer shadow-md border border-indigo-400/20">
-          Save Adjustments
+      <!-- Sidebar Navigation Tab Selectors -->
+      <div class="flex sm:flex-col flex-row border-b sm:border-b-0 sm:border-r border-white/5 pb-3 sm:pb-0 sm:pr-4 mb-4 sm:mb-0 space-x-2 sm:space-x-0 sm:space-y-1.5 shrink-0 overflow-x-auto sm:overflow-x-visible">
+        <button class="settings-tab-btn active-tab flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-left transition-all w-full cursor-pointer" data-tab="profile">
+          <i class="ph-bold ph-user-circle text-base"></i>
+          <span class="hidden sm:inline">Profile Hub</span>
+        </button>
+        <button class="settings-tab-btn flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-left transition-all w-full cursor-pointer" data-tab="appearance">
+          <i class="ph-bold ph-paint-brush text-base"></i>
+          <span class="hidden sm:inline">Appearance</span>
+        </button>
+        <button class="settings-tab-btn flex items-center space-x-2.5 px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider text-left transition-all w-full cursor-pointer" data-tab="advanced">
+          <i class="ph-bold ph-shield-warning text-base"></i>
+          <span class="hidden sm:inline">Advanced</span>
         </button>
       </div>
       
-      <div class="glass-card-light rounded-2xl p-5 border border-white/5 space-y-4">
-        <div class="flex items-center space-x-3 border-b border-white/5 pb-3">
-          <i class="ph-bold ph-paint-brush text-indigo-400 text-xl"></i>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-slate-200">Wallpaper Graphics</h3>
-        </div>
-        <div class="space-y-3">
-          <div class="space-y-1.5">
-            <div class="flex justify-between items-center text-xs px-0.5">
-              <span class="text-slate-400 font-semibold">Workspace Blur</span>
-              <span class="text-indigo-400 font-mono font-bold blur-status-text">${sysState.blur}px</span>
+      <!-- Scrolling Operational Views Container -->
+      <div class="flex-1 sm:pl-5 overflow-y-auto pr-1">
+        
+        <!-- ==================== TAB 1: PROFILE HUB ==================== -->
+        <div id="tab-profile" class="settings-tab-content space-y-5">
+          
+          <!-- Gorgeous Glassmorphic Active Profile Identity Card -->
+          <div class="glass-card-light rounded-3xl p-5 border border-white/5 flex flex-col items-center sm:flex-row sm:items-start sm:space-x-5 text-center sm:text-left relative overflow-hidden">
+            <div class="absolute -right-12 -top-12 w-28 h-28 rounded-full bg-indigo-500/5 blur-2xl"></div>
+            
+            <!-- Interactive Avatar selection button with neon hover rings -->
+            <div class="relative group cursor-pointer mb-4 sm:mb-0">
+              <div class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-2xl blur opacity-30 group-hover:opacity-75 transition duration-500"></div>
+              <div class="settings-avatar-container relative w-18 h-18 bg-slate-900/80 border border-white/10 rounded-2xl flex items-center justify-center text-4xl shadow-inner transition-all duration-300">
+                <span class="settings-profile-avatar select-none">${sysState.avatar || '🐼'}</span>
+                <div class="btn-toggle-avatars absolute inset-0 bg-black/60 rounded-2xl opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-200">
+                  <i class="ph-bold ph-pencil text-white text-sm"></i>
+                </div>
+              </div>
             </div>
-            <input type="range" min="0" max="30" class="settings-blur-slider w-full accent-indigo-500 h-1 bg-white/10 rounded-lg cursor-pointer appearance-none">
+            
+            <!-- Information dashboard -->
+            <div class="flex-1 space-y-1 my-auto">
+              <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-3.5 space-y-1.5 sm:space-y-0 justify-center sm:justify-start">
+                <h4 class="text-base font-extrabold text-white tracking-wide font-display">${sysState.username}</h4>
+                <div class="flex justify-center sm:justify-start">
+                  <span class="profile-security-status-badge px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${hasPass ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25' : 'bg-amber-500/10 text-amber-400 border border-amber-500/25'}">
+                    ${hasPass ? 'Secure' : 'Open'}
+                  </span>
+                </div>
+              </div>
+              <div class="text-[10px] font-semibold text-slate-400/80 uppercase tracking-widest leading-none mt-1">
+                Created: <span class="text-slate-300 font-medium font-mono">${createdDate}</span>
+                <span class="mx-2 text-slate-600">|</span>
+                Files: <span class="text-slate-300 font-medium font-mono">${getFilesCount()} node(s)</span>
+              </div>
+            </div>
           </div>
           
-          <div class="space-y-1 pt-1">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Live Weather Theme</label>
-            <select class="settings-weather-select w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
-              <option value="auto">🌿 Dynamic Weather Sync (API)</option>
-              <option value="sunny">☀️ Sunny & Radiant</option>
-              <option value="rainy">⛈️ Overcast & Rainy</option>
-              <option value="sunset">🌇 Golden Sunset</option>
-              <option value="night">🌙 Starry Night</option>
-            </select>
+          <!-- Avatar picker dropdown -->
+          <div class="avatar-selector-grid hidden glass-card-light rounded-2xl p-4 border border-white/5 text-center animate-fade-in">
+            <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-widest mb-3.5">Select Profile Avatar</label>
+            <div class="grid grid-cols-6 sm:grid-cols-7 gap-2.5">
+              ${['🐼', '🦊', '🐱', '🐶', '🦁', '🐸', '👾', '💻', '🚀', '🔮', '⚡', '🍀', '🪐'].map(emoji => `
+                <button class="avatar-emoji-option text-2xl p-2 rounded-xl hover:bg-white/5 active:scale-90 border border-transparent hover:border-white/5 cursor-pointer transition-all" data-emoji="${emoji}">${emoji}</button>
+              `).join('')}
+            </div>
           </div>
           
-          <div class="space-y-1">
-            <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Wind Sway Force</label>
-            <select class="settings-wind-select w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
-              <option value="calm">💨 Calm Breeze</option>
-              <option value="breeze">🍃 Gentle Sway</option>
-              <option value="windy">🌲 Windy Sway</option>
-              <option value="storm">🌪️ Gale / Storm Sway</option>
-            </select>
+          <!-- Security Customizer settings -->
+          <div class="glass-card-light rounded-2xl p-5 border border-white/5 space-y-4">
+            <div class="flex items-center space-x-3 border-b border-white/5 pb-3">
+              <i class="ph-bold ph-shield-check text-indigo-400 text-lg"></i>
+              <h3 class="text-xs font-bold uppercase tracking-widest text-slate-200">Security Credentials</h3>
+            </div>
+            
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-1 text-left">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Edit Profile Name</label>
+                <input type="text" value="${sysState.username}" class="settings-username-input w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
+              </div>
+              <div class="space-y-1 text-left">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Password <span class="text-[9px] text-slate-500 lowercase">(new / change)</span></label>
+                <input type="password" placeholder="••••••••" class="settings-pass-input w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
+              </div>
+            </div>
+            
+            <div class="flex items-center justify-between p-3.5 bg-slate-950/20 rounded-2xl border border-white/5">
+              <div class="text-left space-y-0.5">
+                <div class="text-xs font-bold text-white leading-tight">Require Password on Login</div>
+                <div class="profile-security-status-text text-[9px] text-slate-400 font-semibold">${hasPass ? 'Password Protected' : 'No Password set'}</div>
+              </div>
+              <div class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" class="settings-require-pass-check sr-only peer" ${hasPass ? 'checked' : ''}>
+                <div class="w-9 h-5 bg-white/10 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600 peer-checked:after:bg-white"></div>
+              </div>
+            </div>
+            
+            <button class="btn-save-profile w-full bg-indigo-600 hover:bg-indigo-500 active:scale-95 text-white text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer shadow-md border border-indigo-400/20">
+              Save Account Changes
+            </button>
           </div>
+          
+          <!-- Switcher (Multi-User Accounts) list -->
+          <div class="glass-card-light rounded-2xl p-5 border border-white/5 space-y-4">
+            <div class="flex items-center justify-between border-b border-white/5 pb-3">
+              <div class="flex items-center space-x-3">
+                <i class="ph-bold ph-users-three text-indigo-400 text-lg"></i>
+                <h3 class="text-xs font-bold uppercase tracking-widest text-slate-200">Registered Accounts</h3>
+              </div>
+              <button class="btn-add-new-account px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[9px] font-extrabold uppercase tracking-widest text-indigo-400 cursor-pointer transition-all active:scale-95 flex items-center gap-1 shadow-sm">
+                <i class="ph-bold ph-plus-circle"></i>
+                <span>Add User</span>
+              </button>
+            </div>
+            
+            <div class="other-profiles-list flex flex-col space-y-2">
+              <!-- Dynamically rendered other profiles list -->
+            </div>
+          </div>
+          
         </div>
-      </div>
-      
-      <div class="glass-card-light rounded-2xl p-5 border border-white/5 flex flex-col space-y-3">
-        <div class="flex items-center space-x-3 border-b border-white/5 pb-3">
-          <i class="ph-bold ph-shield-warning text-red-400 text-xl"></i>
-          <h3 class="text-xs font-bold uppercase tracking-widest text-red-400">Advanced Storage</h3>
+        
+        <!-- ==================== TAB 2: APPEARANCE ==================== -->
+        <div id="tab-appearance" class="settings-tab-content hidden space-y-4">
+          
+          <div class="glass-card-light rounded-2xl p-5 border border-white/5 space-y-4">
+            <div class="flex items-center space-x-3 border-b border-white/5 pb-3">
+              <i class="ph-bold ph-paint-brush text-indigo-400 text-lg"></i>
+              <h3 class="text-xs font-bold uppercase tracking-widest text-slate-200">Wallpaper Graphics</h3>
+            </div>
+            
+            <div class="space-y-3">
+              <div class="space-y-1.5 text-left">
+                <div class="flex justify-between items-center text-xs px-0.5">
+                  <span class="text-slate-400 font-semibold">Workspace Blur</span>
+                  <span class="text-indigo-400 font-mono font-bold blur-status-text">${sysState.blur}px</span>
+                </div>
+                <input type="range" min="0" max="30" class="settings-blur-slider w-full accent-indigo-500 h-1 bg-white/10 rounded-lg cursor-pointer appearance-none">
+              </div>
+              
+              <div class="space-y-1 pt-1 text-left">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Live Weather Theme</label>
+                <select class="settings-weather-select w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
+                  <option value="auto">🌿 Dynamic Weather Sync (API)</option>
+                  <option value="sunny">☀️ Sunny & Radiant</option>
+                  <option value="rainy">⛈️ Overcast & Rainy</option>
+                  <option value="sunset">🌇 Golden Sunset</option>
+                  <option value="night">🌙 Starry Night</option>
+                </select>
+              </div>
+              
+              <div class="space-y-1 text-left">
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-widest px-0.5">Wind Sway Force</label>
+                <select class="settings-wind-select w-full bg-slate-950/40 border border-white/10 rounded-xl py-2 px-3 text-slate-200 focus:outline-none focus:border-indigo-500/50 text-xs">
+                  <option value="calm">💨 Calm Breeze</option>
+                  <option value="breeze">🍃 Gentle Sway</option>
+                  <option value="windy">🌲 Windy Sway</option>
+                  <option value="storm">🌪️ Gale / Storm Sway</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          
         </div>
-        <p class="text-[10px] text-slate-400 leading-normal">Resets all simulated system settings, custom themes, wallpapers, and virtual filesystem files stored inside the LocalStorage database to standard factory states.</p>
-        <button class="settings-restore-btn w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 active:scale-95 text-red-400 text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer shadow-sm">
-          Reset local OS Cache
-        </button>
+        
+        <!-- ==================== TAB 3: ADVANCED ==================== -->
+        <div id="tab-advanced" class="settings-tab-content hidden space-y-4">
+          
+          <div class="glass-card-light rounded-2xl p-5 border border-white/5 flex flex-col space-y-3">
+            <div class="flex items-center space-x-3 border-b border-white/5 pb-3">
+              <i class="ph-bold ph-shield-warning text-red-400 text-lg"></i>
+              <h3 class="text-xs font-bold uppercase tracking-widest text-red-400">Advanced Storage</h3>
+            </div>
+            <p class="text-[10px] text-slate-400 leading-normal text-left">Resets all simulated system settings, user profiles, customized themes, wallpapers, and virtual files filesystem stored inside the LocalStorage database to defaults.</p>
+            <button class="settings-restore-btn w-full bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 active:scale-95 text-red-400 text-xs font-bold uppercase tracking-wider py-2.5 rounded-xl transition-all cursor-pointer shadow-sm">
+              Factory Reset local OS Cache
+            </button>
+          </div>
+          
+        </div>
+        
       </div>
     </div>
   `;
@@ -1736,7 +2402,31 @@ function renderTaskbarApps() {
   
   container.innerHTML = '';
   
-  sysState.pinnedApps.forEach(appKey => {
+  const isAppActive = (appKey) => activeWindows.some(win => win.id === appKey);
+  
+  let appsToShow = [...sysState.pinnedApps];
+  let maxAllowed = appsToShow.length;
+  
+  if (window.innerWidth < 400) {
+    maxAllowed = 2;
+  } else if (window.innerWidth < 640) {
+    maxAllowed = 3;
+  }
+  
+  if (appsToShow.length > maxAllowed) {
+    appsToShow.sort((a, b) => {
+      const activeA = isAppActive(a) ? 1 : 0;
+      const activeB = isAppActive(b) ? 1 : 0;
+      return activeB - activeA;
+    });
+    
+    appsToShow = appsToShow.slice(0, maxAllowed);
+    
+    const originalOrder = sysState.pinnedApps;
+    appsToShow.sort((a, b) => originalOrder.indexOf(a) - originalOrder.indexOf(b));
+  }
+  
+  appsToShow.forEach(appKey => {
     const config = APP_CONFIG[appKey];
     if (!config) return;
     
@@ -1925,11 +2615,73 @@ window.addEventListener('contextmenu', (e) => {
 });
 
 window.addEventListener('click', closeContextMenu);
-window.addEventListener('resize', closeContextMenu);
+window.addEventListener('resize', () => {
+  closeContextMenu();
+  
+  const isMobile = window.innerWidth <= 768;
+  
+  activeWindows.forEach(win => {
+    if (!win.dom) return;
+    
+    if (isMobile) {
+      win.dom.style.width = '100%';
+      win.dom.style.height = '100%';
+      win.dom.style.left = '0';
+      win.dom.style.top = '0';
+      win.dom.style.borderRadius = '16px';
+      
+      const resizer = win.dom.querySelector('.window-resizer');
+      if (resizer) resizer.classList.add('hidden');
+      
+      const maxBtn = win.dom.querySelector('.win-btn-max');
+      if (maxBtn) maxBtn.classList.add('hidden');
+      
+      const resizeEvent = new CustomEvent('windowResize', { detail: { w: win.dom.clientWidth, h: win.dom.clientHeight } });
+      win.dom.dispatchEvent(resizeEvent);
+    } else {
+      const resizer = win.dom.querySelector('.window-resizer');
+      const maxBtn = win.dom.querySelector('.win-btn-max');
+      if (maxBtn) maxBtn.classList.remove('hidden');
+      
+      if (win.isMaximized) {
+        win.dom.style.width = '100%';
+        win.dom.style.height = '100%';
+        win.dom.style.left = '0';
+        win.dom.style.top = '0';
+        win.dom.style.borderRadius = '0px';
+        if (resizer) resizer.classList.add('hidden');
+      } else {
+        win.width = Math.min(win.width, window.innerWidth - 60);
+        win.height = Math.min(win.height, window.innerHeight - 150);
+        
+        win.left = Math.max(10, Math.min(win.left, window.innerWidth - win.width - 10));
+        win.top = Math.max(50, Math.min(win.top, window.innerHeight - win.height - 100));
+        
+        win.dom.style.width = `${win.width}px`;
+        win.dom.style.height = `${win.height}px`;
+        win.dom.style.left = `${win.left}px`;
+        win.dom.style.top = `${win.top}px`;
+        win.dom.style.borderRadius = '20px';
+        if (resizer) resizer.classList.remove('hidden');
+      }
+      
+      const resizeEvent = new CustomEvent('windowResize', { detail: { w: win.isMaximized ? win.dom.clientWidth : win.width, h: win.isMaximized ? win.dom.clientHeight : win.height } });
+      win.dom.dispatchEvent(resizeEvent);
+    }
+  });
+  
+  renderTaskbarApps();
+});
 
 document.getElementById('menu-logo-btn').addEventListener('click', () => {
   launchOrRestoreApp('settings', 'System Settings', 'ph-fill ph-gear', settingsAppContent);
 });
+
+if (UI.menuUserCluster) {
+  UI.menuUserCluster.addEventListener('click', () => {
+    launchOrRestoreApp('settings', 'System Settings', 'ph-fill ph-gear', settingsAppContent);
+  });
+}
 
 /* ==========================================================================
    SECTION 12: SYSTEM INITIALIZATION RUNTIME START
@@ -1942,6 +2694,13 @@ applyBlurLevel(sysState.blur);
 UI.volumeVal.textContent = `${sysState.volume}%`;
 UI.volumeSlider.value = sysState.volume;
 UI.usernameInput.value = sysState.username;
+UI.menuUsernameDisplay.textContent = sysState.username;
+if (UI.menuAvatarDisplay) UI.menuAvatarDisplay.textContent = sysState.avatar || '🐼';
+
+// Trigger usernameInput listener to align the lock screen avatar automatically on load
+setTimeout(() => {
+  UI.usernameInput.dispatchEvent(new Event('input'));
+}, 50);
 
 syncFeatureToggles();
 tickClock();

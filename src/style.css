@@ -367,3 +367,43 @@ input[type="range"]::-webkit-slider-thumb:active {
   opacity: 1;
   transform: scale(1);
 }
+
+/* ==========================================================================
+   SECTION 8: DYNAMIC SECURITY HUB & INTERFACE KINETICS
+   ========================================================================== */
+
+/**
+ * Shake keyframes to signal invalid authorizations
+ */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/**
+ * Settings Tab active/hover highlights
+ */
+.settings-tab-btn {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  color: rgba(226, 232, 240, 0.6);
+  transition: all 0.2s ease;
+}
+
+.settings-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.95);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-tab-btn.active-tab {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border-color: rgba(99, 102, 241, 0.3);
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.1);
+}
