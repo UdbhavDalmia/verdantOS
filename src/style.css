@@ -1,0 +1,369 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+  
+  h1, h2, h3, h4, h5, h6, .font-display {
+    font-family: 'Outfit', sans-serif;
+  }
+  
+  /* Cursive Text Styling (Great Vibes Integration) */
+  .text-cursive {
+    font-family: 'Great Vibes', cursive;
+  }
+}
+
+/* ==========================================================================
+   SECTION 1: GLASSMORPHIC DESIGN SYSTEM
+   ========================================================================== */
+
+/**
+ * Frosted Dark Glass Card Component
+ * Combines heavy blur with saturation boosting for premium contrast.
+ */
+.glass-card {
+  background: rgba(10, 15, 30, 0.45);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+/**
+ * Translucent Floating Panels (MenuBar, Tray Panels, and Taskbar Dock)
+ * Uses high saturation scaling for lag-free backdrop transparency.
+ */
+.glass-card-light {
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+}
+
+/* ==========================================================================
+   SECTION 2: WINDOW MANAGEMENT SYSTEM (WMS)
+   ========================================================================== */
+
+/**
+ * Core App Window Styles
+ * Implements smooth spring curves and high shadow offsets for 3D layering.
+ */
+.os-window {
+  position: absolute;
+  min-width: 300px;
+  min-height: 200px;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  transform: scale(0.98);
+}
+
+/**
+ * Focused Active Window Glow & Highlight
+ */
+.os-window.active-window {
+  box-shadow: 0 40px 100px rgba(0, 0, 0, 0.55), 
+              0 0 1px 2px rgba(99, 102, 241, 0.15), 
+              inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  transform: scale(1);
+}
+
+/**
+ * Minimize Slide-Down-To-Dock Animation
+ * Utilizes translate3d and hardware acceleration to prevent visual tearing.
+ */
+.os-window.minimized {
+  transform: scale(0.2) translate3d(var(--min-x, 0px), var(--min-y, 800px), 0) !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+/**
+ * Window Titlebar Drag Cursor Interaction
+ */
+.window-titlebar {
+  cursor: grab;
+}
+.window-titlebar:active {
+  cursor: grabbing;
+}
+
+/* ==========================================================================
+   SECTION 3: SYSTEM UI SCROLLBARS & CONTROLS
+   ========================================================================== */
+
+/**
+ * Custom Minimal Scrollbar Styles (WebKit UI Components)
+ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+/**
+ * High-Performance Ranges and Sliders
+ */
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+}
+input[type="range"]::-webkit-slider-thumb {
+  width: 12px;
+  height: 12px;
+  margin-top: -4px;
+  border-radius: 9999px;
+  background: #6366f1;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.6);
+  transition: transform 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:active {
+  transform: scale(1.3);
+}
+
+/* ==========================================================================
+   SECTION 4: SYSTEM SHELL TERMINAL STYLING
+   ========================================================================== */
+
+.terminal-font {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 15px;
+  background: #6366f1;
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+/* ==========================================================================
+   SECTION 5: MOTION SYSTEMS & TRANSITION EFFECTS
+   ========================================================================== */
+
+/**
+ * Slow rotation for background vector structures
+ */
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/**
+ * Welcome screen backlighting glow effect
+ */
+#welcome-screen::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  height: 300px;
+  border-radius: 9999px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15) 0%, rgba(0,0,0,0) 70%);
+  z-index: -1;
+  animation: pulse-glow 4s ease-in-out infinite alternate;
+}
+
+@keyframes pulse-glow {
+  0% { transform: translate(-50%, -50%) scale(0.9); opacity: 0.7; }
+  100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+}
+
+/**
+ * Desktop icon selection focus styles
+ */
+.desktop-icon.selected {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/**
+ * GPU-Accelerated Organic Wind Sway & Parallax
+ * Gently pans the wallpaper layer with minimal CPU footprint.
+ */
+.wallpaper-layer {
+  will-change: transform, opacity;
+  transform-style: preserve-3d;
+  backface-visibility: hidden;
+  animation: organic-wind-drift 32s ease-in-out infinite alternate;
+}
+
+@keyframes organic-wind-drift {
+  0% {
+    transform: scale(1.05) translate3d(0, 0, 0) rotate(0.01deg);
+  }
+  50% {
+    transform: scale(1.05) translate3d(-10px, 5px, 0) rotate(0.1deg);
+  }
+  100% {
+    transform: scale(1.05) translate3d(10px, -5px, 0) rotate(-0.1deg);
+  }
+}
+
+/**
+ * Dynamic System Context Menu Items
+ */
+.context-menu-item {
+  width: 100%;
+  padding: 8px 14px;
+  text-align: left;
+  color: rgba(226, 232, 240, 0.85);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: inherit;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.context-menu-item:hover {
+  background: rgba(99, 102, 241, 0.25);
+  color: #ffffff;
+  padding-left: 16px;
+}
+
+.context-menu-divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+  margin: 4px 8px;
+}
+
+/* ==========================================================================
+   SECTION 6: STAGGERED WELCOME TEXT REVEAL
+   ========================================================================== */
+
+.text-cursive-bold {
+  font-family: 'Pacifico', 'Great Vibes', cursive;
+  font-weight: normal;
+}
+
+.welcome-reveal-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.welcome-letter {
+  display: inline-block;
+  opacity: 0;
+  transform: translateY(28px) scale(0.8);
+  filter: blur(8px);
+  animation: appleRevealLetter 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes appleRevealLetter {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.welcome-letter:nth-child(1) { animation-delay: 0.2s; }
+.welcome-letter:nth-child(2) { animation-delay: 0.32s; }
+.welcome-letter:nth-child(3) { animation-delay: 0.44s; }
+.welcome-letter:nth-child(4) { animation-delay: 0.56s; }
+.welcome-letter:nth-child(5) { animation-delay: 0.68s; }
+.welcome-letter:nth-child(6) { animation-delay: 0.8s; }
+.welcome-letter:nth-child(7) { animation-delay: 0.92s; }
+
+/* ==========================================================================
+   SECTION 7: LOGOUT & SHUTDOWN KINETICS
+   ========================================================================== */
+
+#lock-screen {
+  transition: transform 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease, visibility 0.8s !important;
+}
+
+/**
+ * Logout scale and blur fade kinetic
+ */
+.logout-fade-out {
+  animation: logoutScaleBlur 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes logoutScaleBlur {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0px);
+  }
+  100% {
+    transform: scale(0.92);
+    opacity: 0;
+    filter: blur(8px);
+  }
+}
+
+/**
+ * Shutdown CRT style power-off distortion & sweep
+ */
+.shutdown-fade-out {
+  animation: shutdownPowerOff 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes shutdownPowerOff {
+  0% {
+    transform: scale(1);
+    filter: brightness(1) contrast(1) blur(0px);
+    opacity: 1;
+  }
+  30% {
+    transform: scale(1.02);
+    filter: brightness(1.25) contrast(0.95) blur(1px);
+    opacity: 0.9;
+  }
+  100% {
+    transform: scale(0.85);
+    filter: brightness(0) contrast(2) blur(16px);
+    opacity: 0;
+  }
+}
+
+#shutdown-screen {
+  transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 1.2s !important;
+}
+
+/**
+ * Springy zoom for shutdown text elements
+ */
+.shutdown-content-fade {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#shutdown-screen.opacity-100 .shutdown-content-fade {
+  opacity: 1;
+  transform: scale(1);
+}

@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg viewBox='0 0 100 100' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='50' cy='50' r='46' stroke='%23ffffff' stroke-opacity='0.15' stroke-width='2'/%3E%3Ccircle cx='50' cy='50' r='40' stroke='url(%23g)' stroke-opacity='0.6' stroke-width='1.5'/%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='100' y2='100'%3E%3Cstop offset='0%25' stop-color='%2306b6d4'/%3E%3Cstop offset='100%25' stop-color='%2310b981'/%3E%3C/linearGradient%3E%3ClinearGradient id='l' x1='20' y1='20' x2='50' y2='80'%3E%3Cstop offset='0%25' stop-color='%2334d399'/%3E%3Cstop offset='100%25' stop-color='%23059669'/%3E%3C/linearGradient%3E%3ClinearGradient id='c' x1='50' y1='20' x2='80' y2='80'%3E%3Cstop offset='0%25' stop-color='%2322d3ee'/%3E%3Cstop offset='100%25' stop-color='%230891b2'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath d='M50 22 C32 30 24 48 30 68 C35 78 45 80 50 78 C50 78 46 64 44 54 C42 44 48 34 50 22 Z' fill='url(%23l)' opacity='0.9'/%3E%3Cpath d='M50 22 C68 30 76 48 70 68 C65 78 55 80 50 78 Z' fill='url(%23c)' opacity='0.85'/%3E%3Cpath d='M50 35 L62 30 M62 30 H68' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round'/%3E%3Ccircle cx='68' cy='30' r='1.5' fill='%23ffffff'/%3E%3Cpath d='M50 48 L64 45 L68 49' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round'/%3E%3Ccircle cx='68' cy='49' r='1.5' fill='%23ffffff'/%3E%3Cpath d='M50 60 L58 60 L62 65' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round'/%3E%3Ccircle cx='62' cy='65' r='1.5' fill='%23ffffff'/%3E%3C/svg%3E" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VerdantOS</title>
+
+  <!-- Premium Typography Integration (Google Fonts API) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Great+Vibes&family=Pacifico&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <!-- Iconography Library (Phosphor Icons) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Primary Render-Blocking Stylesheet (FOUC Mitigator) -->
+  <link rel="stylesheet" href="/src/style.css" />
+</head>
+
+<body class="h-full w-full bg-[#030712] text-slate-100 overflow-hidden select-none font-sans antialiased">
+
+  <!-- ==========================================================================
+       LAYER 0: GLOBAL WALLPAPER STAGE & ACCELERATED PARALLAX LAYERS
+       ========================================================================== -->
+  <div id="wallpaper-bg" class="absolute inset-0 z-0 overflow-hidden">
+    <div id="wallpaper-bg-1"
+      class="wallpaper-layer absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
+      style="opacity: 1; background-image: url('/wallpapers/sunny.png');"></div>
+    <div id="wallpaper-bg-2"
+      class="wallpaper-layer absolute inset-0 bg-cover bg-center bg-no-repeat transition-opacity duration-1000 ease-in-out"
+      style="opacity: 0;"></div>
+    <div id="wallpaper-blur" class="absolute inset-0 bg-black/20 backdrop-blur-0 transition-all duration-1000"></div>
+  </div>
+
+  <!-- ==========================================================================
+       LAYER 1: MAIN OPERATIONAL STAGE & INTERACTIVE OS SHELL
+       ========================================================================== -->
+  <div id="app" class="relative w-full h-full z-10 overflow-hidden">
+
+    <!-- ==========================================================================
+         STAGE 1: LOCK SCREEN PANEL (GESTURE SWIPE UP TARGET)
+         ========================================================================== -->
+    <div id="lock-screen"
+      class="absolute inset-0 flex flex-col justify-between p-12 transition-transform duration-400 cubic-bezier(0.16, 1, 0.3, 1) z-50 cursor-pointer">
+      <!-- High-Contrast System Time & Date Dashboard -->
+      <div class="flex flex-col items-center justify-center mt-20 text-center select-none pointer-events-none">
+        <div id="lock-time"
+          class="text-7xl md:text-9xl font-extralight tracking-tight text-white drop-shadow-lg font-display">00:00</div>
+        <div id="lock-date"
+          class="text-lg md:text-xl font-medium tracking-wide text-slate-200 mt-4 opacity-90 drop-shadow-md">Monday, May 18</div>
+      </div>
+
+      <!-- Center Floating Unlock CTA Indicator -->
+      <div class="flex flex-col items-center justify-center text-center select-none pointer-events-none my-auto">
+        <div class="flex flex-col items-center animate-bounce duration-1000 mt-12">
+          <i class="ph-bold ph-caret-double-up text-2xl text-white/60 mb-2"></i>
+          <span class="text-sm font-semibold tracking-widest uppercase text-white/70">Click to Unlock</span>
+        </div>
+      </div>
+
+      <!-- Lock Screen Info Footer -->
+      <div class="flex justify-between items-center w-full select-none mt-auto">
+        <!-- Brand Cluster: Glowing Inline SVG Logo -->
+        <div class="flex items-center space-x-3 text-white/85">
+          <div
+            class="w-8 h-8 flex items-center justify-center text-emerald-400 drop-shadow-[0_0_6px_rgba(16,185,129,0.35)]">
+            <svg viewBox="0 0 100 100" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-opacity="0.15" stroke-width="2" />
+              <circle cx="50" cy="50" r="40" stroke="url(#logo-grad-cyan-green)" stroke-opacity="0.4" stroke-width="1.2"
+                stroke-dasharray="3 2" />
+              <defs>
+                <linearGradient id="logo-grad-cyan-green" x1="0" y1="0" x2="100" y2="100"
+                  gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#06b6d4" />
+                  <stop offset="100%" stop-color="#10b981" />
+                </linearGradient>
+                <linearGradient id="leaf-grad-green" x1="20" y1="20" x2="50" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#34d399" />
+                  <stop offset="100%" stop-color="#059669" />
+                </linearGradient>
+                <linearGradient id="leaf-grad-cyan" x1="50" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#22d3ee" />
+                  <stop offset="100%" stop-color="#0891b2" />
+                </linearGradient>
+              </defs>
+              <path d="M50 22 C32 30 24 48 30 68 C35 78 45 80 50 78 C50 78 46 64 44 54 C42 44 48 34 50 22 Z"
+                fill="url(#leaf-grad-green)" opacity="0.9" />
+              <path d="M50 22 C68 30 76 48 70 68 C65 78 55 80 50 78 Z" fill="url(#leaf-grad-cyan)" opacity="0.85" />
+              <path d="M50 35 L62 30 M62 30 H68" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"
+                opacity="0.8" />
+              <circle cx="68" cy="30" r="1.5" fill="#ffffff" />
+              <path d="M50 48 L64 45 L68 49" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
+              <circle cx="68" cy="49" r="1.5" fill="#ffffff" />
+              <path d="M50 60 L58 60 L62 65" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
+              <circle cx="62" cy="65" r="1.5" fill="#ffffff" />
+            </svg>
+          </div>
+          <span class="text-sm font-bold tracking-widest uppercase font-display">VerdantOS</span>
+        </div>
+
+        <!-- Hardware Operations Power Indicator -->
+        <button id="lock-power-btn" tabindex="-1"
+          class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all text-white/70 hover:text-white cursor-pointer shadow-md">
+          <i class="ph-bold ph-power text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         STAGE 2: LOGIN DASHBOARD (GLASSMORPHIC SECURITY MODULE)
+         ========================================================================== -->
+    <div id="login-screen"
+      class="absolute inset-0 flex flex-col justify-between p-12 opacity-0 invisible pointer-events-none transition-all duration-350 z-40">
+
+      <!-- Center Aligned Login Authorization Form Card -->
+      <div class="flex flex-col items-center justify-center my-auto w-full">
+        <div id="login-card"
+          class="glass-card w-full max-w-sm rounded-3xl p-8 flex flex-col items-center justify-center text-center opacity-0 scale-95 transition-all duration-350 delay-100">
+
+          <!-- Glowing Multi-Gradient Profile Avatar -->
+          <div class="relative group mb-6">
+            <div
+              class="absolute -inset-0.5 bg-gradient-to-r from-indigo-500 to-cyan-500 rounded-full blur opacity-40 group-hover:opacity-70 transition duration-1000 animate-pulse">
+            </div>
+            <div
+              class="relative w-24 h-24 rounded-full border border-white/20 bg-slate-900/60 overflow-hidden flex items-center justify-center backdrop-blur-md shadow-inner">
+              <i class="ph-fill ph-user-circle text-6xl text-slate-400"></i>
+            </div>
+          </div>
+
+          <!-- Credential Panel: Username input -->
+          <div class="w-full mb-4">
+            <label class="block text-xs font-bold text-slate-400 uppercase tracking-widest text-left mb-1.5 px-1">User Name</label>
+            <div class="relative">
+              <i class="ph-bold ph-user absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input id="username-input" type="text" value="Verdant Guest" placeholder="Enter username..."
+                class="w-full bg-slate-950/40 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-950/60 transition-all font-medium text-sm text-center">
+            </div>
+          </div>
+
+          <!-- Credential Panel: Password input -->
+          <div class="w-full mb-6">
+            <label
+              class="block text-xs font-bold text-slate-400 uppercase tracking-widest text-left mb-1.5 px-1">Password
+              <span class="text-[9px] text-slate-500 font-normal lowercase">(optional)</span></label>
+            <div class="relative">
+              <i class="ph-bold ph-lock-simple absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+              <input id="password-input" type="password" placeholder="••••••••"
+                class="w-full bg-slate-950/40 border border-white/10 rounded-2xl py-3.5 pl-11 pr-4 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 focus:bg-slate-950/60 transition-all font-medium text-sm text-center">
+            </div>
+          </div>
+
+          <!-- Primary Authorization Sign In Trigger -->
+          <button id="signin-btn"
+            class="w-full bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-98 text-white font-semibold py-3.5 rounded-2xl shadow-lg shadow-indigo-600/35 hover:shadow-indigo-500/50 transition-all duration-300 flex items-center justify-center space-x-2 text-sm cursor-pointer border border-indigo-400/20">
+            <span>Sign In</span>
+            <i class="ph-bold ph-arrow-right"></i>
+          </button>
+
+          <!-- Interaction System Hotkeys Indicator -->
+          <span class="text-[10px] text-slate-500 mt-4 select-none">Press <kbd
+              class="px-1.5 py-0.5 rounded bg-white/5 border border-white/10 text-slate-400 text-[9px] shadow-sm">ESC</kbd>
+            to lock screen</span>
+        </div>
+      </div>
+
+      <!-- Login Dashboard Bottom Menu Bar -->
+      <div class="flex justify-between items-center w-full select-none mt-auto">
+        <div class="flex items-center space-x-2 text-white/60">
+          <span class="text-xs font-bold tracking-widest uppercase font-display">VerdantOS</span>
+        </div>
+
+        <button id="login-power-btn" tabindex="-1"
+          class="w-10 h-10 rounded-full flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/10 active:scale-95 transition-all text-white/50 hover:text-white cursor-pointer shadow-md">
+          <i class="ph-bold ph-power text-lg"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         STAGE 3: SIMULATED BOOT/LOADING GRAPHICAL GATEWAYS
+         ========================================================================== -->
+    <div id="loading-screen"
+      class="absolute inset-0 flex flex-col items-center justify-center opacity-0 invisible pointer-events-none transition-all duration-700 z-30">
+      
+      <!-- Premium Cybernetic Branding Emblem & Glowing Halos -->
+      <div class="relative mb-8">
+        <div
+          class="absolute -inset-2.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 rounded-full blur-md opacity-25 animate-pulse">
+        </div>
+        <div
+          class="relative w-28 h-28 rounded-full border border-white/10 bg-slate-950/80 backdrop-blur-md flex items-center justify-center shadow-2xl p-4 text-emerald-400 drop-shadow-[0_0_8px_rgba(16,185,129,0.35)]">
+          <svg viewBox="0 0 100 100" class="w-full h-full" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="50" cy="50" r="46" stroke="currentColor" stroke-opacity="0.15" stroke-width="2" />
+            <circle cx="50" cy="50" r="40" stroke="url(#logo-grad-cyan-green-large)" stroke-opacity="0.4"
+              stroke-width="1.2" stroke-dasharray="3 2" />
+            <defs>
+              <linearGradient id="logo-grad-cyan-green-large" x1="0" y1="0" x2="100" y2="100"
+                gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#06b6d4" />
+                <stop offset="100%" stop-color="#10b981" />
+              </linearGradient>
+              <linearGradient id="leaf-grad-green-large" x1="20" y1="20" x2="50" y2="80" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#34d399" />
+                <stop offset="100%" stop-color="#059669" />
+              </linearGradient>
+              <linearGradient id="leaf-grad-cyan-large" x1="50" y1="20" x2="80" y2="80" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#22d3ee" />
+                <stop offset="100%" stop-color="#0891b2" />
+              </linearGradient>
+            </defs>
+            <path d="M50 22 C32 30 24 48 30 68 C35 78 45 80 50 78 C50 78 46 64 44 54 C42 44 48 34 50 22 Z"
+              fill="url(#leaf-grad-green-large)" opacity="0.9" />
+            <path d="M50 22 C68 30 76 48 70 68 C65 78 55 80 50 78 Z" fill="url(#leaf-grad-cyan-large)" opacity="0.85" />
+            <path d="M50 35 L62 30 M62 30 H68" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round"
+              opacity="0.8" />
+            <circle cx="68" cy="30" r="1.5" fill="#ffffff" />
+            <path d="M50 48 L64 45 L68 49" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
+            <circle cx="68" cy="49" r="1.5" fill="#ffffff" />
+            <path d="M50 60 L58 60 L62 65" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity="0.8" />
+            <circle cx="62" cy="65" r="1.5" fill="#ffffff" />
+          </svg>
+        </div>
+      </div>
+
+      <!-- Real-Time Logging Core Status Output -->
+      <div class="text-center">
+        <h2 id="loading-title" class="text-xl font-bold tracking-wide text-white font-display mb-2">Logging In...</h2>
+        <p id="loading-status" class="text-xs font-medium text-indigo-300/70 h-4 tracking-wider uppercase font-mono">Mounting Virtual Kernel...</p>
+      </div>
+
+      <!-- Linear Glowing Progress Indicator -->
+      <div class="w-64 h-1 bg-white/5 rounded-full mt-8 overflow-hidden border border-white/5">
+        <div id="loading-progress"
+          class="h-full bg-gradient-to-r from-indigo-500 to-cyan-400 transition-all duration-300 w-0"></div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         STAGE 4: DYNAMIC WELCOME BANNER (STAGGERED SWEED LETTERS)
+         ========================================================================== -->
+    <div id="welcome-screen"
+      class="absolute inset-0 flex flex-col justify-between p-12 opacity-0 invisible pointer-events-none transition-all duration-400 z-20">
+      
+      <!-- Staggered Glyphs Array Container -->
+      <div class="flex flex-col items-center justify-center my-auto w-full select-none pointer-events-none text-center">
+        <h1 id="welcome-name"
+          class="text-cursive-bold text-7xl md:text-[8.5rem] text-white select-none leading-none tracking-normal flex justify-center items-center welcome-reveal-container drop-shadow-2xl">
+          <span class="welcome-letter">W</span>
+          <span class="welcome-letter">e</span>
+          <span class="welcome-letter">l</span>
+          <span class="welcome-letter">c</span>
+          <span class="welcome-letter">o</span>
+          <span class="welcome-letter">m</span>
+          <span class="welcome-letter">e</span>
+        </h1>
+      </div>
+
+      <!-- Welcome Stage Branding Sign-off -->
+      <div class="flex justify-center items-center w-full select-none mt-auto">
+        <span class="text-xs font-bold tracking-[0.25em] uppercase text-white/50 font-display">VerdantOS</span>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         STAGE 5: FULLY OPERATIONAL MULTI-WORKSPACE ENVIRONMENT
+         ========================================================================== -->
+    <div id="desktop"
+      class="absolute inset-0 flex flex-col justify-between opacity-0 invisible pointer-events-none transition-all duration-450 z-10 p-4">
+
+      <!-- Layered operational viewport carrying shortcut grids and frames -->
+      <div id="workspace" class="relative flex-1 w-full z-20">
+
+        <!-- Shortcuts Grid Overlay -->
+        <div id="desktop-icons" class="absolute top-2 left-2 flex flex-col space-y-4 w-24">
+          
+          <!-- Shortcut: File Explorer -->
+          <div id="icon-explorer"
+            class="desktop-icon group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all duration-300 border border-transparent hover:border-white/5 cursor-pointer">
+            <div
+              class="w-12 h-12 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-center shadow-lg group-hover:shadow-amber-500/10 transition-all text-amber-400 mb-1.5">
+              <i class="ph-fill ph-folder-open text-2xl"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-200 group-hover:text-white drop-shadow-md select-none">Files</span>
+          </div>
+
+          <!-- Shortcut: Core Terminal -->
+          <div id="icon-terminal"
+            class="desktop-icon group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all duration-300 border border-transparent hover:border-white/5 cursor-pointer">
+            <div
+              class="w-12 h-12 rounded-xl bg-slate-900/60 border border-white/10 flex items-center justify-center shadow-lg group-hover:shadow-indigo-500/10 transition-all text-indigo-400 mb-1.5">
+              <i class="ph-bold ph-terminal-window text-2xl"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-200 group-hover:text-white drop-shadow-md select-none">Terminal</span>
+          </div>
+
+          <!-- Shortcut: Web Browser -->
+          <div id="icon-browser"
+            class="desktop-icon group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all duration-300 border border-transparent hover:border-white/5 cursor-pointer">
+            <div
+              class="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/25 flex items-center justify-center shadow-lg group-hover:shadow-cyan-500/10 transition-all text-cyan-400 mb-1.5">
+              <i class="ph-bold ph-globe-simple text-2xl"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-200 group-hover:text-white drop-shadow-md select-none">Browser</span>
+          </div>
+
+          <!-- Shortcut: System Config Settings -->
+          <div id="icon-settings"
+            class="desktop-icon group flex flex-col items-center text-center p-2 rounded-2xl hover:bg-white/5 active:scale-95 transition-all duration-300 border border-transparent hover:border-white/5 cursor-pointer">
+            <div
+              class="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/25 flex items-center justify-center shadow-lg group-hover:shadow-indigo-500/10 transition-all text-indigo-400 mb-1.5">
+              <i class="ph-fill ph-gear text-2xl"></i>
+            </div>
+            <span class="text-[11px] font-semibold text-slate-200 group-hover:text-white drop-shadow-md select-none">Settings</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ==========================================================================
+           UNIFIED GLASSMORPHIC TASKBAR (SYSTEM ANCHOR INTERFACE)
+           ========================================================================== -->
+      <div class="w-full flex justify-center pb-2 pt-4 select-none z-30 pointer-events-none">
+        <div
+          class="w-full max-w-7xl glass-card-light h-16 px-6 rounded-3xl flex items-center justify-between shadow-lg pointer-events-auto border border-white/10 relative">
+
+          <!-- Left Dashboard Cluster (Branding & Active Session Identity) -->
+          <div class="flex items-center space-x-4">
+            <button id="menu-logo-btn"
+              class="flex items-center space-x-2 text-emerald-400 hover:text-emerald-300 font-extrabold tracking-wider transition-all text-xs uppercase cursor-pointer">
+              <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span class="font-display font-extrabold">VerdantOS</span>
+            </button>
+            <span class="h-3 w-px bg-white/10"></span>
+            <span id="menu-username-display" class="font-semibold text-slate-200 text-xs">Guest</span>
+          </div>
+
+          <!-- Middle Navigation dock Carrying Minimized Window Targets -->
+          <div id="taskbar-apps" class="flex items-center space-x-3 pointer-events-auto">
+            <!-- Populated on runtime events -->
+          </div>
+
+          <!-- Right Status Bar Dashboard -->
+          <div class="flex items-center space-x-4">
+            <!-- Hardware Interfaces Tray -->
+            <div id="desktop-tray-features" class="flex items-center space-x-2 text-slate-300">
+              <i id="tray-wifi" class="ph-bold ph-wifi-slash text-base text-slate-500 transition-all duration-300"></i>
+              <i id="tray-bluetooth"
+                class="ph-bold ph-bluetooth-slash text-base text-slate-500 transition-all duration-300"></i>
+            </div>
+
+            <span class="h-3 w-px bg-white/10"></span>
+
+            <!-- Real-Time Atmospheric Feed Widget -->
+            <div id="desktop-tray-weather"
+              class="text-slate-300 hover:text-white transition-all flex items-center space-x-1.5 cursor-pointer text-xs">
+              <i id="top-bar-weather-icon" class="ph-bold ph-cloud-sun text-base text-emerald-400"></i>
+              <span id="top-bar-temp" class="font-semibold text-xs">--°C</span>
+            </div>
+
+            <span class="h-3 w-px bg-white/10"></span>
+
+            <!-- Quick Settings Panel Trigger Button -->
+            <button id="quick-settings-toggle"
+              class="h-8 px-3.5 bg-white/5 border border-white/10 hover:bg-emerald-600/20 hover:border-emerald-500/30 rounded-xl flex items-center justify-center space-x-2 text-xs text-slate-200 hover:text-emerald-300 transition-all cursor-pointer select-none">
+              <i class="ph-bold ph-sliders text-sm text-emerald-400"></i>
+              <span class="font-semibold text-xs">Quick Menu</span>
+            </button>
+
+            <span class="h-3 w-px bg-white/10"></span>
+
+            <!-- Real-time digital clock -->
+            <div id="desktop-clock"
+              class="text-slate-200 hover:text-white transition-all font-semibold font-mono text-xs cursor-pointer select-none">00:00 PM</div>
+          </div>
+
+          <!-- ==========================================================================
+               TRAY FLYOUT PANEL 1: METEOROLOGICAL TELEMETRY
+               ========================================================================== -->
+          <div id="weather-details-panel"
+            class="glass-card absolute right-0 bottom-20 w-80 rounded-3xl p-6 opacity-0 pointer-events-none scale-95 origin-bottom-right transition-all duration-300 z-50 flex flex-col space-y-4">
+            
+            <div class="flex justify-between items-center border-b border-white/5 pb-3">
+              <h3 class="text-sm font-bold text-white uppercase tracking-wider font-display flex items-center gap-1.5">
+                <i class="ph-bold ph-cloud-sun text-emerald-400"></i>Weather Center
+              </h3>
+              <button id="weather-panel-close"
+                class="text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer">
+                <i class="ph-bold ph-x text-base"></i>
+              </button>
+            </div>
+
+            <!-- Active Geographic Location Display -->
+            <div
+              class="flex items-center justify-between p-3.5 bg-slate-950/30 rounded-2xl border border-white/5 shadow-sm">
+              <div class="text-left space-y-0.5">
+                <div id="weather-panel-city" class="text-sm font-bold text-white leading-tight">Local Region</div>
+                <div id="weather-panel-desc" class="text-xs text-slate-400 font-medium">Clear Skies</div>
+              </div>
+              <div class="flex items-center space-x-2.5">
+                <i id="weather-panel-icon" class="ph-bold ph-sun text-4xl text-amber-400 animate-pulse"></i>
+                <div id="weather-panel-temp" class="text-3xl font-extrabold text-white tracking-tighter">--°C</div>
+              </div>
+            </div>
+
+            <!-- Environmental Grid Info -->
+            <div class="grid grid-cols-2 gap-3">
+              <div
+                class="flex items-center space-x-2.5 p-3.5 bg-slate-950/20 border border-white/5 rounded-2xl shadow-sm text-left">
+                <i class="ph-bold ph-wind text-lg text-emerald-400"></i>
+                <div>
+                  <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Wind</div>
+                  <div id="weather-panel-wind" class="text-xs font-semibold text-slate-200">CALM</div>
+                </div>
+              </div>
+              <div
+                class="flex items-center space-x-2.5 p-3.5 bg-slate-950/20 border border-white/5 rounded-2xl shadow-sm text-left">
+                <i class="ph-bold ph-drop text-lg text-emerald-400"></i>
+                <div>
+                  <div class="text-[9px] font-bold text-slate-500 uppercase tracking-widest leading-none mb-1">Humidity</div>
+                  <div id="weather-panel-humidity" class="text-xs font-semibold text-slate-200">55%</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="flex items-center justify-center space-x-1.5 py-1 text-[10px] text-slate-500 select-none">
+              <i class="ph-bold ph-broadcast text-[11px] text-emerald-500/80 animate-pulse"></i>
+              <span>Synced in real-time via Open-Meteo</span>
+            </div>
+          </div>
+
+          <!-- ==========================================================================
+               TRAY FLYOUT PANEL 2: HARDWARE STATE CONTROLLER & HARDWARE METRICS
+               ========================================================================== -->
+          <div id="quick-settings-panel"
+            class="glass-card absolute right-0 bottom-20 w-80 rounded-3xl p-6 opacity-0 pointer-events-none scale-95 origin-bottom-right transition-all duration-300 z-50 flex flex-col space-y-5">
+            
+            <div class="flex justify-between items-center border-b border-white/5 pb-3">
+              <h3 class="text-sm font-bold text-white uppercase tracking-wider font-display flex items-center gap-1.5">
+                <i class="ph-bold ph-sliders text-emerald-400"></i>System Controls
+              </h3>
+              <button id="quick-settings-close"
+                class="text-slate-400 hover:text-white active:scale-90 transition-all cursor-pointer">
+                <i class="ph-bold ph-x text-base"></i>
+              </button>
+            </div>
+
+            <!-- Hardware Toggle Radios -->
+            <div class="grid grid-cols-2 gap-3">
+              <button id="toggle-wifi"
+                class="flex flex-col items-center justify-center p-4 bg-transparent border border-white/10 hover:bg-white/5 text-slate-400 rounded-2xl transition-all duration-300 active:scale-95 cursor-pointer shadow-sm">
+                <i class="ph-bold ph-wifi-slash text-xl mb-1.5 text-slate-500"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider">Wi-Fi</span>
+                <span id="wifi-status" class="text-[8px] text-slate-500 mt-0.5">Disconnected</span>
+              </button>
+              <button id="toggle-bluetooth"
+                class="flex flex-col items-center justify-center p-4 bg-transparent border border-white/10 hover:bg-white/5 text-slate-400 rounded-2xl transition-all duration-300 active:scale-95 cursor-pointer shadow-sm">
+                <i class="ph-bold ph-bluetooth-slash text-xl mb-1.5 text-slate-500"></i>
+                <span class="text-[10px] font-bold uppercase tracking-wider">Bluetooth</span>
+                <span id="bluetooth-status" class="text-[8px] text-slate-500 mt-0.5">Disabled</span>
+              </button>
+            </div>
+
+            <!-- Precision Analog Controls -->
+            <div class="space-y-4">
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-xs font-semibold px-0.5">
+                  <span class="text-slate-400">Volume</span>
+                  <span id="volume-val" class="text-slate-200">80%</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <i class="ph-bold ph-speaker-high text-emerald-400 text-base"></i>
+                  <input id="volume-slider" type="range" min="0" max="100" value="80"
+                    class="flex-1 accent-emerald-500 h-1 bg-white/10 rounded-lg cursor-pointer appearance-none">
+                </div>
+              </div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-center text-xs font-semibold px-0.5">
+                  <span class="text-slate-400">Display Blur</span>
+                  <span id="blur-val" class="text-slate-200">0px</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                  <i class="ph-bold ph-sparkles text-emerald-400 text-base"></i>
+                  <input id="blur-slider" type="range" min="0" max="30" value="0"
+                    class="flex-1 accent-emerald-500 h-1 bg-white/10 rounded-lg cursor-pointer appearance-none">
+                </div>
+              </div>
+            </div>
+
+            <!-- Virtual Engine Metrics Feed -->
+            <div class="bg-slate-950/40 border border-white/5 rounded-2xl p-4 flex flex-col space-y-2 select-none">
+              <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span>Kernel RAM</span>
+                <span id="ram-usage" class="text-emerald-400 font-mono">1.2 GB / 8 GB</span>
+              </div>
+              <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                <div id="ram-bar" class="h-full bg-emerald-500 w-[15%] transition-all duration-500"></div>
+              </div>
+              <div class="flex justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400 mt-1">
+                <span>Virtual CPU</span>
+                <span id="cpu-usage" class="text-teal-400 font-mono">3%</span>
+              </div>
+              <div class="w-full h-1 bg-white/5 rounded-full overflow-hidden">
+                <div id="cpu-bar" class="h-full bg-teal-500 w-[3%] transition-all duration-500"></div>
+              </div>
+            </div>
+
+            <!-- System Session Termination Controls -->
+            <div class="flex space-x-2 border-t border-white/5 pt-4">
+              <button id="lock-os-btn"
+                class="flex-1 bg-white/5 hover:bg-white/10 active:scale-95 border border-white/10 text-xs font-bold uppercase tracking-widest text-slate-200 py-2.5 rounded-xl transition-all cursor-pointer shadow-sm">Lock OS</button>
+              <button id="reset-os-btn" tabindex="-1"
+                class="flex-1 bg-red-500/10 hover:bg-red-500/20 active:scale-95 border border-red-500/25 text-xs font-bold uppercase tracking-widest text-red-400 py-2.5 rounded-xl transition-all cursor-pointer shadow-md">Shutdown</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         STAGE 6: SHUTDOWN CONFIRMATION PAGE (CRT DECAY AND SWEEP INDICATOR)
+         ========================================================================== -->
+    <div id="shutdown-screen"
+      class="absolute inset-0 bg-[#030712] flex flex-col items-center justify-center transition-all duration-1000 ease-in-out opacity-0 invisible pointer-events-none z-[100]">
+      <div
+        class="shutdown-content-fade flex flex-col items-center space-y-6 select-none pointer-events-none text-center">
+        <div
+          class="w-16 h-16 rounded-full border border-emerald-500/30 flex items-center justify-center bg-emerald-500/5 shadow-lg">
+          <i class="ph-fill ph-power text-3xl text-emerald-400"></i>
+        </div>
+        <div class="space-y-2">
+          <h2 class="text-2xl font-bold tracking-wider text-slate-100 font-display">System Safely Shut Down</h2>
+          <p class="text-sm text-slate-400 max-w-sm leading-relaxed px-6 font-medium">VerdantOS has safely unmounted all system partitions and closed kernel threads. You can now close this browser window or tab.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==========================================================================
+         STAGE 7: DYNAMIC GLOBAL CONTEXT MENU PORTAL
+         ========================================================================== -->
+    <div id="sys-context-menu"
+      class="glass-card absolute w-48 rounded-2xl py-1.5 opacity-0 pointer-events-none scale-95 origin-top-left transition-all duration-150 z-[100] shadow-xl text-xs font-semibold border border-white/10 select-none">
+      <div id="context-menu-items" class="flex flex-col space-y-0.5"></div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+
+</html>
